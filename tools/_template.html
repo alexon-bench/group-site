@@ -24,6 +24,7 @@
         font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
       }
 
+      /* MTECH TOP BAR STYLES START: copy this block unchanged into every tool */
       .site-header {
         width: 100%;
         border-bottom: 1px solid #dadcd7;
@@ -81,6 +82,13 @@
       .site-nav a:hover,
       .site-nav a:focus-visible { color: #315cf5; }
 
+      @media (max-width: 560px) {
+        .header-inner { width: min(100% - 28px, 1120px); min-height: 68px; }
+        .site-nav { gap: 16px; }
+        .site-nav a:nth-child(2) { display: none; }
+      }
+      /* MTECH TOP BAR STYLES END */
+
       main {
         width: min(760px, calc(100% - 32px));
         margin: 0 auto;
@@ -133,11 +141,6 @@
         *, *::before, *::after { transition-duration: 0.01ms !important; }
       }
 
-      @media (max-width: 560px) {
-        .header-inner { width: min(100% - 28px, 1120px); min-height: 68px; }
-        .site-nav { gap: 16px; }
-        .site-nav a:nth-child(2) { display: none; }
-      }
     </style>
   </head>
   <body>

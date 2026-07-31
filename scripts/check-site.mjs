@@ -43,12 +43,26 @@ function navigationMarkup(filename, html) {
   return match[1].replace(/\s+/g, " ").trim();
 }
 
+function navigationStyles(filename, html) {
+  const match = html.match(
+    /\/\* MTECH TOP BAR STYLES START:[^*]*\*\/([\s\S]*?)\/\* MTECH TOP BAR STYLES END \*\//,
+  );
+
+  if (!match) {
+    errors.push(`${filename} is missing the protected MTech top-bar styles.`);
+    return "";
+  }
+
+  return match[1].replace(/\s+/g, " ").trim();
+}
+
 if (!index.includes('data-mtech-nav="v1"')) {
   errors.push("index.html is missing the standard MTech navigation marker.");
 }
 
 checkNavigation("tools/_template.html", template);
 const standardNavigation = navigationMarkup("tools/_template.html", template);
+const standardNavigationStyles = navigationStyles("tools/_template.html", template);
 
 for (const filename of filenames) {
   const html = await readFile(join(toolsDirectory, filename), "utf8");
@@ -62,6 +76,10 @@ for (const filename of filenames) {
   const toolNavigation = navigationMarkup(`tools/${filename}`, html);
   if (toolNavigation && toolNavigation !== standardNavigation) {
     errors.push(`tools/${filename} does not match the template's MTech top-bar markup.`);
+  }
+  const toolNavigationStyles = navigationStyles(`tools/${filename}`, html);
+  if (toolNavigationStyles && toolNavigationStyles !== standardNavigationStyles) {
+    errors.push(`tools/${filename} does not match the template's MTech top-bar styles.`);
   }
 }
 

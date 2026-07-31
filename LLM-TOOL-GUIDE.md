@@ -13,7 +13,8 @@ destabilizing the shared site.
 
 ### Default scope: create one file only
 
-For a new tool, create exactly one file:
+For a new tool, create exactly one file. Use a lowercase, hyphen-separated
+filename so its case-sensitive GitHub Pages URL is easy to reproduce:
 
 ```text
 tools/<short-descriptive-name>.html
@@ -24,9 +25,10 @@ The file must contain all of its HTML, CSS, and JavaScript. Start from
 
 Unless the user explicitly requests integration, do not edit any other file.
 
-Creating a tool file and publishing a tool are different tasks. A published
-tool is complete only when its file exists, its landing-page card exists, and
-the repository check passes.
+Creating, integrating, committing, pushing, and deploying are different tasks.
+Use those terms precisely. Do not describe a tool as integrated until its file
+and landing-page card both exist and the repository check passes. Do not
+describe it as published or live until the GitHub Pages checks below pass.
 
 ### Files that are globally protected
 
@@ -54,6 +56,16 @@ Do not run `git pull`, `git add`, `git commit`, `git push`, `git merge`,
 `git rebase`, `git reset`, or `git clean` unless the user explicitly asks for
 that specific Git action. Never force-push. Never rewrite history.
 
+The clearest end-to-end authorization is:
+
+> Stage, commit, push, and publish this tool, then verify GitHub Pages.
+
+That sentence authorizes `git add` for the reported tool and integration files,
+one normal `git commit`, and `git push` of the current branch. It does not
+authorize pull, merge, rebase, reset, clean, force-push, unrelated files, or
+credential extraction. If authentication blocks the push, stop and tell the
+user what authenticated action remains; do not work around account security.
+
 Before reporting completion, list every changed file. For the default new-tool
 task, that list must contain exactly one new HTML file.
 
@@ -68,6 +80,8 @@ The tool must:
 - preserve the complete `MTECH TOP BAR START` through `MTECH TOP BAR END`
   block from `tools/_template.html`, including its links and
   `data-mtech-nav="v1"` marker;
+- preserve the complete `MTECH TOP BAR STYLES START` through
+  `MTECH TOP BAR STYLES END` CSS block from `tools/_template.html`;
 - be responsive and comfortable on narrow screens;
 - use semantic HTML and visible labels for form controls;
 - support keyboard navigation and visible focus states;
@@ -82,11 +96,13 @@ Do not add network requests, uploads, authentication, cookies, tracking, or
 third-party embeds unless the user explicitly requests them and the maintainer
 approves them.
 
-### Publishing and integration mode
+### Landing-page integration mode
 
 Treat requests to **add**, **publish**, **integrate**, or **put a tool on the
 MTech site** as explicit requests to link the finished tool on the home page.
-In that case, you may edit `index.html` as follows:
+The word **publish** activates landing-page integration, but it does not by
+itself authorize Git commands. In integration mode, you may edit `index.html`
+as follows:
 
 1. Change only the content between the `MTECH TOOL CARDS START` and
    `MTECH TOOL CARDS END` comments.
@@ -105,8 +121,31 @@ node scripts/check-site.mjs
 ```
 
 This dependency-free check confirms that every HTML tool has exactly one home
-page card and uses the standard MTech top navigation. Do not report the tool as
-published if this check fails.
+page card and uses the standard MTech top-navigation markup and styles. Do not
+report the tool as integrated if this check fails.
+
+### GitHub Pages publication
+
+Only enter this phase when the user has explicitly authorized `git add`,
+`git commit`, and `git push`, preferably with the end-to-end sentence in the
+Git safety section.
+
+1. Run `node scripts/check-site.mjs` and stop if it fails.
+2. Review `git status` and stage only the files named in the handoff.
+3. Create one normal commit without amending or rewriting history.
+4. Push the current branch without force-pushing.
+5. Record the pushed commit hash and wait for the GitHub Pages deployment for
+   that exact commit to complete successfully.
+6. Verify the live site with a cache-busting query such as `?v=<commit>`:
+   - the homepage contains exactly one card for the new tool;
+   - the card opens the exact, case-sensitive tool URL successfully;
+   - the tool's MTech Home, Tools, Contribute, and GitHub links work; and
+   - the browser reports no console errors.
+
+Do not report the tool as published or live before all six steps succeed. A
+queued deployment is pending, not published. If GitHub authentication or Pages
+deployment blocks completion, report the exact remaining state without making
+another commit merely to retry deployment.
 
 ### Required handoff
 
@@ -122,6 +161,10 @@ For integration mode, also report whether `node scripts/check-site.mjs`
 passed. The automatic GitHub check will repeat the same validation after the
 change is pushed.
 
+For publication mode, also provide the commit hash, Pages deployment result,
+live homepage URL, and live tool URL. State plainly if any of these remain
+pending.
+
 If the request conflicts with these boundaries, stop and ask the user or MTech
 maintainer for approval. Do not widen your own scope.
 
@@ -132,3 +175,8 @@ example:
 
 > Create a meeting timer with large start, pause, and reset controls. Keep all
 > timing data in the browser. Follow the MTech tool-building guide exactly.
+
+To request complete integration and publication, append:
+
+> Add this tool to the MTech homepage. Run the site check, stage the reported
+> files, commit, push, publish, and verify the live homepage and tool URL.
