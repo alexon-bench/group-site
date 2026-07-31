@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Generate the reverse complement of a DNA sequence." />
+    <title>DNA Reverse Complement | MTech</title>
+    <style>
+      :root {
+        --ink: #141615;
+        --muted: #626763;
+        --paper: #f5f5f1;
+        --surface: #ffffff;
+        --line: #dadcd7;
+        --blue: #315cf5;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      }
+
+      /* MTECH TOP BAR STYLES START: copy this block unchanged into every tool */
+      .site-header {
+        width: 100%;
+        border-bottom: 1px solid #dadcd7;
+        background: rgba(245, 245, 241, 0.94);
+      }
+
+      .header-inner {
+        display: flex;
+        width: min(1120px, calc(100% - 48px));
+        min-height: 76px;
+        margin-inline: auto;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: #141615;
+        font-size: 1.02rem;
+        font-weight: 760;
+        letter-spacing: -0.02em;
+        text-decoration: none;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 30px;
+        height: 30px;
+        place-items: center;
+        border-radius: 7px;
+        background: #141615;
+        color: white;
+        font-size: 0.82rem;
+        font-weight: 800;
+      }
+
+      .site-nav {
+        display: flex;
+        align-items: center;
+        gap: 30px;
+        color: #626763;
+        font-size: 0.9rem;
+        font-weight: 600;
+      }
+
+      .site-nav a {
+        color: inherit;
+        font-weight: inherit;
+        text-decoration: none;
+        transition: color 150ms ease;
+      }
+
+      .site-nav a:hover,
+      .site-nav a:focus-visible { color: #315cf5; }
+
+      @media (max-width: 560px) {
+        .header-inner { width: min(100% - 28px, 1120px); min-height: 68px; }
+        .site-nav { gap: 16px; }
+        .site-nav a:nth-child(2) { display: none; }
+      }
+      /* MTECH TOP BAR STYLES END */
+
+      main {
+        width: min(760px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 42px 0 80px;
+      }
+
+      a {
+        color: var(--blue);
+        font-weight: 700;
+        text-underline-offset: 4px;
+      }
+
+      h1 {
+        margin: 58px 0 12px;
+        font-size: clamp(2.7rem, 9vw, 5rem);
+        line-height: 0.98;
+        letter-spacing: -0.06em;
+      }
+
+      .intro {
+        max-width: 600px;
+        margin: 0 0 30px;
+        color: var(--muted);
+      }
+
+      .tool-panel {
+        padding: clamp(20px, 5vw, 36px);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--surface);
+      }
+
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible,
+      textarea:focus-visible,
+      a:focus-visible {
+        outline: 3px solid #aebdff;
+        outline-offset: 3px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { transition-duration: 0.01ms !important; }
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 20px;
+      }
+
+      label {
+        font-weight: 700;
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 140px;
+        padding: 12px 14px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--paper);
+        color: var(--ink);
+        resize: vertical;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.95rem;
+        line-height: 1.5;
+      }
+
+      textarea[readonly] {
+        background: #eceeea;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+
+      button.primary,
+      button.secondary {
+        padding: 10px 18px;
+        border-radius: 8px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      button.primary {
+        border: 1px solid var(--ink);
+        background: var(--ink);
+        color: white;
+      }
+
+      button.primary:hover {
+        background: #2a2c29;
+      }
+
+      button.secondary {
+        border: 1px solid var(--line);
+        background: var(--surface);
+        color: var(--ink);
+      }
+
+      button.secondary:hover {
+        border-color: var(--blue);
+        color: var(--blue);
+      }
+
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        color: var(--muted);
+        font-size: 0.88rem;
+        margin: -8px 0 20px;
+      }
+
+      .status {
+        min-height: 1.2em;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .status[data-state="error"] {
+        color: #b3261e;
+      }
+
+      .note {
+        margin-top: 26px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- MTECH TOP BAR START: copy this block unchanged into every tool -->
+    <header class="site-header" data-mtech-nav="v1">
+      <div class="header-inner">
+        <a class="brand" href="../index.html" aria-label="MTech home">
+          <span class="brand-mark" aria-hidden="true">M</span>
+          <span>MTech</span>
+        </a>
+        <nav class="site-nav" aria-label="Main navigation">
+          <a href="../index.html#tools">Tools</a>
+          <a href="../index.html#contribute">Contribute</a>
+          <a href="https://github.com/alexon-bench/group-site" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+        </nav>
+      </div>
+    </header>
+    <!-- MTECH TOP BAR END -->
+    <main>
+      <h1>DNA Reverse Complement</h1>
+      <p class="intro">Paste a DNA sequence and generate its reverse complement, read 5&prime; to 3&prime;.</p>
+
+      <section class="tool-panel" aria-label="DNA reverse complement">
+        <form id="rc-form">
+          <div class="field">
+            <label for="input-seq">DNA sequence (5&prime; &rarr; 3&prime;)</label>
+            <textarea
+              id="input-seq"
+              name="input-seq"
+              placeholder="e.g. ATGCCGTA or a FASTA-style sequence"
+              spellcheck="false"
+              autocomplete="off"
+            ></textarea>
+          </div>
+
+          <div class="actions">
+            <button type="submit" class="primary">Generate reverse complement</button>
+            <button type="button" class="secondary" id="clear-btn">Clear</button>
+          </div>
+        </form>
+
+        <p class="status" id="status" role="status" aria-live="polite"></p>
+
+        <div class="field">
+          <label for="output-seq">Reverse complement</label>
+          <textarea id="output-seq" readonly spellcheck="false" aria-live="polite"></textarea>
+        </div>
+
+        <div class="actions">
+          <button type="button" class="secondary" id="copy-btn">Copy result</button>
+        </div>
+
+        <p class="meta" id="output-meta"></p>
+
+        <p class="note">
+          All processing happens locally in this browser tab using JavaScript.
+          Nothing you type is stored, uploaded, or sent anywhere &mdash; the
+          sequence and result disappear when you leave or reload the page.
+        </p>
+      </section>
+    </main>
+
+    <script>
+      (function () {
+        var form = document.getElementById('rc-form');
+        var input = document.getElementById('input-seq');
+        var output = document.getElementById('output-seq');
+        var status = document.getElementById('status');
+        var meta = document.getElementById('output-meta');
+        var clearBtn = document.getElementById('clear-btn');
+        var copyBtn = document.getElementById('copy-btn');
+
+        // IUPAC nucleotide complements, covering standard bases,
+        // ambiguity codes, and RNA uracil. Case is preserved.
+        var COMPLEMENTS = {
+          A: 'T', T: 'A', U: 'A', C: 'G', G: 'C',
+          R: 'Y', Y: 'R', S: 'S', W: 'W', K: 'M', M: 'K',
+          B: 'V', V: 'B', D: 'H', H: 'D', N: 'N'
+        };
+
+        function complementBase(ch) {
+          var upper = ch.toUpperCase();
+          var complement = COMPLEMENTS[upper];
+          if (!complement) return null;
+          return ch === upper ? complement : complement.toLowerCase();
+        }
+
+        function reverseComplement(sequence) {
+          var chars = sequence.split('');
+          var result = new Array(chars.length);
+          var invalid = [];
+
+          for (var i = 0; i < chars.length; i++) {
+            var ch = chars[i];
+            if (/\s/.test(ch)) {
+              result[chars.length - 1 - i] = ch;
+              continue;
+            }
+            var complement = complementBase(ch);
+            if (complement === null) {
+              invalid.push(ch);
+              complement = ch;
+            }
+            result[chars.length - 1 - i] = complement;
+          }
+
+          return { sequence: result.join(''), invalid: invalid };
+        }
+
+        function countBases(sequence) {
+          return sequence.replace(/\s/g, '').length;
+        }
+
+        form.addEventListener('submit', function (event) {
+          event.preventDefault();
+          var raw = input.value;
+
+          if (!raw.trim()) {
+            status.textContent = 'Enter a DNA sequence first.';
+            status.dataset.state = 'error';
+            output.value = '';
+            meta.textContent = '';
+            return;
+          }
+
+          var result = reverseComplement(raw);
+          output.value = result.sequence;
+          meta.textContent = countBases(raw) + ' base(s) in, ' + countBases(result.sequence) + ' base(s) out.';
+
+          if (result.invalid.length) {
+            var unique = Array.from(new Set(result.invalid));
+            status.textContent = 'Unrecognized character(s) left unchanged: ' + unique.join(' ');
+            status.dataset.state = 'error';
+          } else {
+            status.textContent = 'Reverse complement generated.';
+            status.removeAttribute('data-state');
+          }
+        });
+
+        clearBtn.addEventListener('click', function () {
+          input.value = '';
+          output.value = '';
+          status.textContent = '';
+          status.removeAttribute('data-state');
+          meta.textContent = '';
+          input.focus();
+        });
+
+        copyBtn.addEventListener('click', function () {
+          if (!output.value) {
+            status.textContent = 'Nothing to copy yet.';
+            status.dataset.state = 'error';
+            return;
+          }
+          if (!navigator.clipboard) {
+            output.select();
+            status.textContent = 'Clipboard API unavailable; result selected for manual copy.';
+            status.dataset.state = 'error';
+            return;
+          }
+          navigator.clipboard.writeText(output.value).then(function () {
+            status.textContent = 'Result copied to clipboard.';
+            status.removeAttribute('data-state');
+          }, function () {
+            status.textContent = 'Copy failed. Select the text and copy manually.';
+            status.dataset.state = 'error';
+          });
+        });
+      })();
+    </script>
+  </body>
+</html>
