@@ -1,0 +1,587 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Convert a CSV file with name and sequence columns into a FASTA file, entirely in your browser." />
+    <title>CSV to FASTA Converter | MTech</title>
+    <style>
+      :root {
+        --ink: #141615;
+        --muted: #626763;
+        --paper: #f5f5f1;
+        --surface: #ffffff;
+        --line: #dadcd7;
+        --blue: #315cf5;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      }
+
+      /* MTECH TOP BAR STYLES START: copy this block unchanged into every tool */
+      .site-header {
+        width: 100%;
+        border-bottom: 1px solid #dadcd7;
+        background: rgba(245, 245, 241, 0.94);
+      }
+
+      .header-inner {
+        display: flex;
+        width: min(1120px, calc(100% - 48px));
+        min-height: 76px;
+        margin-inline: auto;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: #141615;
+        font-size: 1.02rem;
+        font-weight: 760;
+        letter-spacing: -0.02em;
+        text-decoration: none;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 30px;
+        height: 30px;
+        place-items: center;
+        border-radius: 7px;
+        background: #141615;
+        color: white;
+        font-size: 0.82rem;
+        font-weight: 800;
+      }
+
+      .site-nav {
+        display: flex;
+        align-items: center;
+        gap: 30px;
+        color: #626763;
+        font-size: 0.9rem;
+        font-weight: 600;
+      }
+
+      .site-nav a {
+        color: inherit;
+        font-weight: inherit;
+        text-decoration: none;
+        transition: color 150ms ease;
+      }
+
+      .site-nav a:hover,
+      .site-nav a:focus-visible { color: #315cf5; }
+
+      @media (max-width: 560px) {
+        .header-inner { width: min(100% - 28px, 1120px); min-height: 68px; }
+        .site-nav { gap: 16px; }
+        .site-nav a:nth-child(2) { display: none; }
+      }
+      /* MTECH TOP BAR STYLES END */
+
+      main {
+        width: min(760px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 42px 0 80px;
+      }
+
+      a {
+        color: var(--blue);
+        font-weight: 700;
+        text-underline-offset: 4px;
+      }
+
+      h1 {
+        margin: 58px 0 12px;
+        font-size: clamp(2.7rem, 9vw, 5rem);
+        line-height: 0.98;
+        letter-spacing: -0.06em;
+      }
+
+      .intro {
+        max-width: 600px;
+        margin: 0 0 30px;
+        color: var(--muted);
+      }
+
+      .tool-panel {
+        padding: clamp(20px, 5vw, 36px);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--surface);
+      }
+
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible,
+      textarea:focus-visible,
+      a:focus-visible {
+        outline: 3px solid #aebdff;
+        outline-offset: 3px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { transition-duration: 0.01ms !important; }
+      }
+
+      .field {
+        margin-bottom: 22px;
+      }
+
+      .field label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 700;
+      }
+
+      .field .hint {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 0.88rem;
+      }
+
+      input[type="file"] {
+        display: block;
+        width: 100%;
+        padding: 10px;
+        border: 1px dashed var(--line);
+        border-radius: 8px;
+        background: var(--paper);
+      }
+
+      textarea {
+        width: 100%;
+        min-height: 140px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--paper);
+        color: var(--ink);
+        resize: vertical;
+      }
+
+      #output {
+        min-height: 200px;
+        background: var(--surface);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 0.88rem;
+        white-space: pre;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 8px;
+      }
+
+      button {
+        padding: 11px 20px;
+        border: 1px solid var(--ink);
+        border-radius: 8px;
+        background: var(--ink);
+        color: white;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      button.secondary {
+        background: transparent;
+        color: var(--ink);
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .status {
+        margin-top: 14px;
+        font-size: 0.92rem;
+      }
+
+      .status[data-tone="error"] { color: #b3261e; }
+      .status[data-tone="success"] { color: #146c2e; }
+
+      .divider {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 26px 0;
+        color: var(--muted);
+        font-size: 0.85rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+
+      .divider::before,
+      .divider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--line);
+      }
+
+      .storage-note {
+        margin-top: 34px;
+        padding: 16px 18px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--paper);
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- MTECH TOP BAR START: copy this block unchanged into every tool -->
+    <header class="site-header" data-mtech-nav="v1">
+      <div class="header-inner">
+        <a class="brand" href="../index.html" aria-label="MTech home">
+          <span class="brand-mark" aria-hidden="true">M</span>
+          <span>MTech</span>
+        </a>
+        <nav class="site-nav" aria-label="Main navigation">
+          <a href="../index.html#tools">Tools</a>
+          <a href="../index.html#contribute">Contribute</a>
+          <a href="https://github.com/alexon-bench/group-site" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+        </nav>
+      </div>
+    </header>
+    <!-- MTECH TOP BAR END -->
+    <main>
+      <h1>CSV to FASTA</h1>
+      <p class="intro">
+        Convert a CSV file, or a pasted table, of <code>name</code> and <code>sequence</code>
+        values into a FASTA file. Everything runs in your browser; no file ever leaves your
+        device.
+      </p>
+
+      <section class="tool-panel" aria-label="CSV to FASTA converter">
+        <div class="field">
+          <label for="csv-file">Upload a CSV file</label>
+          <input type="file" id="csv-file" accept=".csv,text/csv" />
+          <p class="hint">The file must have a header row with columns named "name" and "sequence" (any column order, case-insensitive).</p>
+        </div>
+
+        <div class="divider">or</div>
+
+        <div class="field">
+          <label for="csv-text">Paste CSV text or a table</label>
+          <textarea id="csv-text" spellcheck="false" placeholder="name,sequence&#10;seq1,ATGCATGC&#10;seq2,GGCCTTAA"></textarea>
+          <p class="hint">
+            You can also paste a table copied from a spreadsheet (tab-separated), with or
+            without a "name" / "sequence" header row.
+          </p>
+        </div>
+
+        <div class="actions">
+          <button type="button" id="convert-btn">Convert to FASTA</button>
+          <button type="button" id="clear-btn" class="secondary">Clear</button>
+        </div>
+
+        <p class="status" id="status" role="status" aria-live="polite"></p>
+
+        <div class="field" style="margin-top: 20px;">
+          <label for="output">FASTA output</label>
+          <textarea id="output" readonly aria-label="FASTA output"></textarea>
+        </div>
+
+        <div class="actions">
+          <button type="button" id="download-btn" disabled>Download .fasta</button>
+          <button type="button" id="copy-btn" class="secondary" disabled>Copy to clipboard</button>
+        </div>
+
+        <p class="storage-note">
+          <strong>Storage:</strong> This tool does not use cookies, local storage, or any
+          network requests. Your CSV and the generated FASTA text exist only in this browser
+          tab and are cleared when you reload or close the page.
+        </p>
+      </section>
+    </main>
+
+    <script>
+      (function () {
+        "use strict";
+
+        var fileInput = document.getElementById("csv-file");
+        var textInput = document.getElementById("csv-text");
+        var convertBtn = document.getElementById("convert-btn");
+        var clearBtn = document.getElementById("clear-btn");
+        var downloadBtn = document.getElementById("download-btn");
+        var copyBtn = document.getElementById("copy-btn");
+        var output = document.getElementById("output");
+        var status = document.getElementById("status");
+
+        var LINE_WIDTH = 60;
+        var currentFasta = "";
+
+        function setStatus(message, tone) {
+          status.textContent = message;
+          if (tone) {
+            status.setAttribute("data-tone", tone);
+          } else {
+            status.removeAttribute("data-tone");
+          }
+        }
+
+        function detectDelimiter(text) {
+          var firstLine = text.split(/\r\n|\r|\n/)[0] || "";
+          var tabCount = (firstLine.match(/\t/g) || []).length;
+          var commaCount = (firstLine.match(/,/g) || []).length;
+          return tabCount > commaCount ? "\t" : ",";
+        }
+
+        function parseCsv(text, delimiter) {
+          var rows = [];
+          var row = [];
+          var field = "";
+          var inQuotes = false;
+          var i = 0;
+
+          function pushField() {
+            row.push(field);
+            field = "";
+          }
+
+          function pushRow() {
+            pushField();
+            rows.push(row);
+            row = [];
+          }
+
+          while (i < text.length) {
+            var ch = text[i];
+
+            if (inQuotes) {
+              if (ch === '"') {
+                if (text[i + 1] === '"') {
+                  field += '"';
+                  i += 2;
+                  continue;
+                }
+                inQuotes = false;
+                i += 1;
+                continue;
+              }
+              field += ch;
+              i += 1;
+              continue;
+            }
+
+            if (ch === '"') {
+              inQuotes = true;
+              i += 1;
+              continue;
+            }
+
+            if (ch === delimiter) {
+              pushField();
+              i += 1;
+              continue;
+            }
+
+            if (ch === "\r") {
+              i += 1;
+              continue;
+            }
+
+            if (ch === "\n") {
+              pushRow();
+              i += 1;
+              continue;
+            }
+
+            field += ch;
+            i += 1;
+          }
+
+          if (field.length > 0 || row.length > 0) {
+            pushRow();
+          }
+
+          return rows.filter(function (r) {
+            return !(r.length === 1 && r[0] === "");
+          });
+        }
+
+        function wrapSequence(sequence) {
+          var lines = [];
+          for (var i = 0; i < sequence.length; i += LINE_WIDTH) {
+            lines.push(sequence.slice(i, i + LINE_WIDTH));
+          }
+          return lines.join("\n");
+        }
+
+        function convert() {
+          var text = textInput.value.trim();
+          var run = function (csvText) {
+            processCsv(csvText);
+          };
+
+          if (fileInput.files && fileInput.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function () {
+              run(String(reader.result));
+            };
+            reader.onerror = function () {
+              setStatus("Could not read the selected file.", "error");
+            };
+            reader.readAsText(fileInput.files[0]);
+            return;
+          }
+
+          if (!text) {
+            setStatus("Choose a CSV file or paste CSV text first.", "error");
+            return;
+          }
+
+          run(text);
+        }
+
+        function processCsv(csvText) {
+          var rows = parseCsv(csvText, detectDelimiter(csvText));
+
+          if (rows.length < 1) {
+            setStatus("Paste or upload some rows first.", "error");
+            resetOutput();
+            return;
+          }
+
+          var header = rows[0].map(function (h) {
+            return h.trim().toLowerCase();
+          });
+          var nameIndex = header.indexOf("name");
+          var sequenceIndex = header.indexOf("sequence");
+          var firstDataRow = 1;
+
+          if (nameIndex === -1 || sequenceIndex === -1) {
+            // No recognizable header. Fall back to a plain two-column table
+            // (e.g. pasted straight from a spreadsheet) of name, sequence.
+            var isTwoColumnTable = rows.every(function (r) {
+              return r.length === 2;
+            });
+
+            if (!isTwoColumnTable) {
+              setStatus(
+                'Include a header row with "name" and "sequence" columns, or paste a plain two-column table.',
+                "error"
+              );
+              resetOutput();
+              return;
+            }
+
+            nameIndex = 0;
+            sequenceIndex = 1;
+            firstDataRow = 0;
+          }
+
+          if (rows.length <= firstDataRow) {
+            setStatus("The header needs at least one data row below it.", "error");
+            resetOutput();
+            return;
+          }
+
+          var entries = [];
+          var skipped = 0;
+
+          for (var i = firstDataRow; i < rows.length; i += 1) {
+            var r = rows[i];
+            var name = (r[nameIndex] || "").trim();
+            var sequence = (r[sequenceIndex] || "").replace(/\s+/g, "");
+
+            if (!name || !sequence) {
+              skipped += 1;
+              continue;
+            }
+
+            var header_line = name.charAt(0) === ">" ? name : ">" + name;
+            entries.push(header_line + "\n" + wrapSequence(sequence));
+          }
+
+          if (entries.length === 0) {
+            setStatus("No rows had both a name and a sequence.", "error");
+            resetOutput();
+            return;
+          }
+
+          currentFasta = entries.join("\n") + "\n";
+          output.value = currentFasta;
+          downloadBtn.disabled = false;
+          copyBtn.disabled = false;
+
+          var message = "Converted " + entries.length + " sequence" + (entries.length === 1 ? "" : "s") + ".";
+          if (skipped > 0) {
+            message += " Skipped " + skipped + " row" + (skipped === 1 ? "" : "s") + " missing a name or sequence.";
+          }
+          setStatus(message, "success");
+        }
+
+        function resetOutput() {
+          currentFasta = "";
+          output.value = "";
+          downloadBtn.disabled = true;
+          copyBtn.disabled = true;
+        }
+
+        function download() {
+          if (!currentFasta) {
+            return;
+          }
+          var blob = new Blob([currentFasta], { type: "text/x-fasta" });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement("a");
+          a.href = url;
+          a.download = "sequences.fasta";
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }
+
+        function copyOutput() {
+          if (!currentFasta) {
+            return;
+          }
+          navigator.clipboard.writeText(currentFasta).then(
+            function () {
+              setStatus("FASTA copied to clipboard.", "success");
+            },
+            function () {
+              setStatus("Could not copy automatically. Select the text and copy manually.", "error");
+            }
+          );
+        }
+
+        convertBtn.addEventListener("click", convert);
+        downloadBtn.addEventListener("click", download);
+        copyBtn.addEventListener("click", copyOutput);
+
+        clearBtn.addEventListener("click", function () {
+          fileInput.value = "";
+          textInput.value = "";
+          resetOutput();
+          setStatus("", null);
+        });
+      })();
+    </script>
+  </body>
+</html>
