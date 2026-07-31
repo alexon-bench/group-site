@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Text Counter | Group Site</title>
+    <style>
+      :root { color-scheme: light; --ink: #17231f; --paper: #f6f4ed; --green: #2d684e; --line: #d8d9d1; }
+      * { box-sizing: border-box; }
+      body { margin: 0; background: var(--paper); color: var(--ink); font: 16px/1.5 Arial, sans-serif; }
+      main { width: min(760px, calc(100% - 32px)); margin: 0 auto; padding: 42px 0 80px; }
+      a { color: var(--green); font-weight: 700; text-underline-offset: 4px; }
+      h1 { margin: 60px 0 10px; font-size: clamp(2.6rem, 9vw, 5rem); line-height: 1; letter-spacing: -0.06em; }
+      .intro { max-width: 580px; margin: 0 0 28px; color: #5c6862; }
+      textarea { width: 100%; min-height: 300px; resize: vertical; padding: 18px; border: 1px solid var(--line); border-radius: 10px; background: #fffdf8; color: var(--ink); font: inherit; line-height: 1.6; }
+      textarea:focus { outline: 3px solid #b9d2c3; border-color: var(--green); }
+      .counts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+      .count { padding: 16px; border: 1px solid var(--line); border-radius: 8px; background: #fffdf8; }
+      .count strong, .count span { display: block; }
+      .count strong { font-size: 1.6rem; }
+      .count span { color: #5c6862; font-size: 0.85rem; }
+      .privacy { margin-top: 18px; color: #5c6862; font-size: 0.85rem; }
+      @media (max-width: 520px) { .counts { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a href="/">← Back to all tools</a>
+      <h1>Text counter</h1>
+      <p class="intro">Paste or type below to quickly count your words, characters, and lines.</p>
+      <label for="text"><strong>Your text</strong></label>
+      <textarea id="text" autofocus placeholder="Start typing…"></textarea>
+      <div class="counts" aria-live="polite">
+        <div class="count"><strong id="words">0</strong><span>Words</span></div>
+        <div class="count"><strong id="characters">0</strong><span>Characters</span></div>
+        <div class="count"><strong id="lines">0</strong><span>Lines</span></div>
+      </div>
+      <p class="privacy">Your text stays in this browser and is never saved or sent.</p>
+    </main>
+    <script>
+      const text = document.querySelector("#text");
+      const words = document.querySelector("#words");
+      const characters = document.querySelector("#characters");
+      const lines = document.querySelector("#lines");
+
+      text.addEventListener("input", () => {
+        const value = text.value;
+        words.textContent = value.trim() ? value.trim().split(/\s+/).length : 0;
+        characters.textContent = value.length;
+        lines.textContent = value ? value.split(/\n/).length : 0;
+      });
+    </script>
+  </body>
+</html>
