@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Calculate PrimeSTAR primer Tm from a DNA sequence.">
+  <title>PrimeSTAR Tm Calculator</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17211d;
+      --muted: #66706b;
+      --paper: #f6f3eb;
+      --card: rgba(255, 255, 255, 0.88);
+      --line: #d9ddd7;
+      --accent: #087f5b;
+      --accent-dark: #056044;
+      --error: #b42318;
+      --warning: #8a5b00;
+      --shadow: 0 24px 60px rgba(31, 45, 38, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 12% 15%, rgba(8, 127, 91, 0.13), transparent 28rem),
+        radial-gradient(circle at 88% 85%, rgba(219, 166, 75, 0.14), transparent 24rem),
+        var(--paper);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    main {
+      width: min(100%, 680px);
+      padding: clamp(24px, 5vw, 44px);
+      border: 1px solid rgba(255, 255, 255, 0.75);
+      border-radius: 24px;
+      background: var(--card);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    .back-link {
+      display: inline-block;
+      margin-bottom: 32px;
+      color: var(--accent-dark);
+      font-size: 0.9rem;
+      font-weight: 750;
+      text-underline-offset: 4px;
+    }
+
+    .back-link:focus-visible {
+      outline: 3px solid rgba(8, 127, 91, 0.24);
+      outline-offset: 4px;
+      border-radius: 3px;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--accent);
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(2rem, 7vw, 3.25rem);
+      font-weight: 500;
+      letter-spacing: -0.04em;
+      line-height: 1;
+    }
+
+    .formula {
+      margin: 16px 0 30px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 9px;
+      font-weight: 750;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 145px;
+      resize: vertical;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      outline: none;
+      color: var(--ink);
+      background: #fff;
+      font: 600 1rem/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      letter-spacing: 0.06em;
+      transition: border-color 150ms ease, box-shadow 150ms ease;
+    }
+
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(8, 127, 91, 0.12);
+    }
+
+    textarea.invalid {
+      border-color: var(--error);
+      box-shadow: 0 0 0 4px rgba(180, 35, 24, 0.1);
+    }
+
+    .helper {
+      min-height: 1.4em;
+      margin: 8px 0 20px;
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    .helper.error { color: var(--error); }
+    .helper.warning { color: var(--warning); }
+
+    .result {
+      display: grid;
+      grid-template-columns: 1.4fr repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .stat {
+      min-width: 0;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(246, 243, 235, 0.62);
+    }
+
+    .stat.primary {
+      color: white;
+      border-color: var(--accent);
+      background: var(--accent);
+    }
+
+    .stat-label {
+      display: block;
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+    }
+
+    .primary .stat-label { color: rgba(255, 255, 255, 0.72); }
+
+    output, .stat-value {
+      display: block;
+      overflow: hidden;
+      font-size: clamp(1.45rem, 5vw, 2rem);
+      font-weight: 800;
+      line-height: 1;
+      text-overflow: ellipsis;
+    }
+
+    .counts {
+      margin: 18px 0 0;
+      color: var(--muted);
+      font: 0.88rem/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      text-align: center;
+    }
+
+    .notice {
+      margin: 24px 0 0;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.6;
+    }
+
+    @media (max-width: 560px) {
+      .result { grid-template-columns: 1fr 1fr; }
+      .stat.primary { grid-column: 1 / -1; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <a class="back-link" href="../index.html">← Back to MTech tools</a>
+    <p class="eyebrow">PrimeSTAR primer utility</p>
+    <h1>Tm calculator</h1>
+    <p class="formula">Tm = 2(A + T) + 4(G + C) − 5°C</p>
+
+    <label for="sequence">DNA sequence</label>
+    <textarea id="sequence" spellcheck="false" autocomplete="off" autofocus
+      aria-describedby="message" aria-invalid="false"
+      placeholder="Paste a primer sequence, e.g. ATGCGTACGTTAGCCTAGGC"></textarea>
+    <p class="helper" id="message" aria-live="polite">Spaces and line breaks are ignored. FASTA headers are supported.</p>
+
+    <section class="result" aria-label="Calculation results" aria-live="polite">
+      <div class="stat primary">
+        <span class="stat-label">Calculated Tm</span>
+        <output id="tm" for="sequence">—</output>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Length</span>
+        <span class="stat-value" id="length">0 nt</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">GC content</span>
+        <span class="stat-value" id="gc">—</span>
+      </div>
+    </section>
+
+    <p class="counts" id="counts">A 0 · T 0 · G 0 · C 0</p>
+    <p class="notice">
+      Formula guidance is specified for PrimeSTAR primers 25 nucleotides or
+      shorter. This tool runs entirely in your browser and does not save or send
+      sequence data.
+    </p>
+  </main>
+
+  <script>
+    const sequenceInput = document.querySelector('#sequence');
+    const tmOutput = document.querySelector('#tm');
+    const lengthOutput = document.querySelector('#length');
+    const gcOutput = document.querySelector('#gc');
+    const countsOutput = document.querySelector('#counts');
+    const message = document.querySelector('#message');
+
+    function calculate() {
+      const withoutFastaHeaders = sequenceInput.value
+        .split(/\r?\n/)
+        .filter(line => !line.trim().startsWith('>'))
+        .join('');
+      const sequence = withoutFastaHeaders.replace(/\s+/g, '').toUpperCase();
+      const invalid = [...new Set(sequence.replace(/[ATGC]/g, '').split(''))]
+        .filter(Boolean);
+
+      sequenceInput.classList.toggle('invalid', invalid.length > 0);
+      message.classList.toggle('error', invalid.length > 0);
+      message.classList.remove('warning');
+      sequenceInput.setAttribute('aria-invalid', String(invalid.length > 0));
+
+      if (invalid.length > 0) {
+        tmOutput.textContent = '—';
+        lengthOutput.textContent = '—';
+        gcOutput.textContent = '—';
+        countsOutput.textContent = 'Fix the sequence to calculate Tm';
+        message.textContent = `Unsupported base${invalid.length > 1 ? 's' : ''}: ${invalid.join(', ')}`;
+        return;
+      }
+
+      const counts = { A: 0, T: 0, G: 0, C: 0 };
+      for (const base of sequence) counts[base] += 1;
+
+      const length = sequence.length;
+      const gcCount = counts.G + counts.C;
+      const tm = 2 * (counts.A + counts.T) + 4 * gcCount - 5;
+
+      tmOutput.textContent = length ? `${tm}°C` : '—';
+      lengthOutput.textContent = `${length} nt`;
+      gcOutput.textContent = length ? `${(100 * gcCount / length).toFixed(1)}%` : '—';
+      countsOutput.textContent = `A ${counts.A} · T ${counts.T} · G ${counts.G} · C ${counts.C}`;
+      if (length > 25) {
+        message.classList.add('warning');
+        message.textContent = 'This primer is longer than 25 nt. Check the applicable PrimeSTAR protocol before using this Tm value.';
+      } else {
+        message.textContent = 'Spaces and line breaks are ignored. FASTA headers are supported.';
+      }
+    }
+
+    sequenceInput.addEventListener('input', calculate);
+    calculate();
+  </script>
+</body>
+</html>
