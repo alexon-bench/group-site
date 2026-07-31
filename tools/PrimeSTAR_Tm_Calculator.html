@@ -25,9 +25,8 @@
     body {
       min-height: 100vh;
       margin: 0;
-      display: grid;
-      place-items: center;
-      padding: 24px;
+      display: flex;
+      flex-direction: column;
       color: var(--ink);
       background:
         radial-gradient(circle at 12% 15%, rgba(8, 127, 91, 0.13), transparent 28rem),
@@ -36,29 +35,72 @@
       font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
 
+    .site-header {
+      width: 100%;
+      border-bottom: 1px solid #dadcd7;
+      background: rgba(245, 245, 241, 0.94);
+    }
+
+    .header-inner {
+      display: flex;
+      width: min(1120px, calc(100% - 48px));
+      min-height: 76px;
+      margin-inline: auto;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: #141615;
+      font-size: 1.02rem;
+      font-weight: 760;
+      letter-spacing: -0.02em;
+      text-decoration: none;
+    }
+
+    .brand-mark {
+      display: grid;
+      width: 30px;
+      height: 30px;
+      place-items: center;
+      border-radius: 7px;
+      background: #141615;
+      color: white;
+      font-size: 0.82rem;
+      font-weight: 800;
+    }
+
+    .site-nav {
+      display: flex;
+      align-items: center;
+      gap: 30px;
+      color: #626763;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .site-nav a {
+      color: inherit;
+      font-weight: inherit;
+      text-decoration: none;
+      transition: color 150ms ease;
+    }
+
+    .site-nav a:hover,
+    .site-nav a:focus-visible { color: #315cf5; }
+
     main {
-      width: min(100%, 680px);
+      width: min(680px, calc(100% - 32px));
+      margin: auto;
       padding: clamp(24px, 5vw, 44px);
       border: 1px solid rgba(255, 255, 255, 0.75);
       border-radius: 24px;
       background: var(--card);
       box-shadow: var(--shadow);
       backdrop-filter: blur(12px);
-    }
-
-    .back-link {
-      display: inline-block;
-      margin-bottom: 32px;
-      color: var(--accent-dark);
-      font-size: 0.9rem;
-      font-weight: 750;
-      text-underline-offset: 4px;
-    }
-
-    .back-link:focus-visible {
-      outline: 3px solid rgba(8, 127, 91, 0.24);
-      outline-offset: 4px;
-      border-radius: 3px;
     }
 
     .eyebrow {
@@ -184,6 +226,9 @@
     }
 
     @media (max-width: 560px) {
+      .header-inner { width: min(100% - 28px, 1120px); min-height: 68px; }
+      .site-nav { gap: 16px; }
+      .site-nav a:nth-child(2) { display: none; }
       .result { grid-template-columns: 1fr 1fr; }
       .stat.primary { grid-column: 1 / -1; }
     }
@@ -194,8 +239,22 @@
   </style>
 </head>
 <body>
+  <!-- MTECH TOP BAR START: copy this block unchanged from tools/_template.html -->
+  <header class="site-header" data-mtech-nav="v1">
+    <div class="header-inner">
+      <a class="brand" href="../index.html" aria-label="MTech home">
+        <span class="brand-mark" aria-hidden="true">M</span>
+        <span>MTech</span>
+      </a>
+      <nav class="site-nav" aria-label="Main navigation">
+        <a href="../index.html#tools">Tools</a>
+        <a href="../index.html#contribute">Contribute</a>
+        <a href="https://github.com/alexon-bench/group-site" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+      </nav>
+    </div>
+  </header>
+  <!-- MTECH TOP BAR END -->
   <main>
-    <a class="back-link" href="../index.html">← Back to MTech tools</a>
     <p class="eyebrow">PrimeSTAR primer utility</p>
     <h1>Tm calculator</h1>
     <p class="formula">Tm = 2(A + T) + 4(G + C) − 5°C</p>

@@ -24,6 +24,10 @@ The file must contain all of its HTML, CSS, and JavaScript. Start from
 
 Unless the user explicitly requests integration, do not edit any other file.
 
+Creating a tool file and publishing a tool are different tasks. A published
+tool is complete only when its file exists, its landing-page card exists, and
+the repository check passes.
+
 ### Files that are globally protected
 
 Do not modify, rename, move, replace, or delete any of these unless the user
@@ -61,6 +65,9 @@ The tool must:
 - use plain HTML, CSS, and JavaScript with no build step;
 - avoid external packages, CDNs, remote scripts, remote fonts, and analytics;
 - use relative links, including `../index.html` for the return link;
+- preserve the complete `MTECH TOP BAR START` through `MTECH TOP BAR END`
+  block from `tools/_template.html`, including its links and
+  `data-mtech-nav="v1"` marker;
 - be responsive and comfortable on narrow screens;
 - use semantic HTML and visible labels for form controls;
 - support keyboard navigation and visible focus states;
@@ -75,10 +82,11 @@ Do not add network requests, uploads, authentication, cookies, tracking, or
 third-party embeds unless the user explicitly requests them and the maintainer
 approves them.
 
-### Optional integration mode
+### Publishing and integration mode
 
-Only when the user explicitly asks you to link the finished tool on the home
-page may you edit `index.html`. In that case:
+Treat requests to **add**, **publish**, **integrate**, or **put a tool on the
+MTech site** as explicit requests to link the finished tool on the home page.
+In that case, you may edit `index.html` as follows:
 
 1. Change only the content between the `MTECH TOOL CARDS START` and
    `MTECH TOOL CARDS END` comments.
@@ -90,6 +98,16 @@ page may you edit `index.html`. In that case:
 Integration mode should change only the new tool file and the marked card area
 inside `index.html`.
 
+Before reporting that an integrated tool is finished, run:
+
+```text
+node scripts/check-site.mjs
+```
+
+This dependency-free check confirms that every HTML tool has exactly one home
+page card and uses the standard MTech top navigation. Do not report the tool as
+published if this check fails.
+
 ### Required handoff
 
 When finished, provide:
@@ -99,6 +117,10 @@ When finished, provide:
 3. a short list of behaviors tested;
 4. any storage, downloads, or network behavior; and
 5. the complete list of changed files.
+
+For integration mode, also report whether `node scripts/check-site.mjs`
+passed. The automatic GitHub check will repeat the same validation after the
+change is pushed.
 
 If the request conflicts with these boundaries, stop and ask the user or MTech
 maintainer for approval. Do not widen your own scope.

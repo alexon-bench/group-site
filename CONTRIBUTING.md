@@ -18,8 +18,9 @@ breaking another.
    - a one-sentence description; and
    - any information the tool saves, sends, or downloads.
 
-The maintainer will review the file, place it in `tools/`, and add its card to
-the landing page. You never need to edit the shared home page.
+The maintainer will review the file, place it in `tools/`, preserve the standard
+MTech top navigation, and add its card to the landing page. You never need to
+edit the shared home page.
 
 ## GitHub path
 
@@ -28,10 +29,15 @@ Use this path only if you are comfortable with GitHub Desktop or branches.
 1. Create a new branch with a short name such as `tool/meeting-timer`.
 2. Copy `tools/_template.html` to `tools/your-tool-name.html`.
 3. Change only your new tool file while building and testing it.
-4. If the maintainer asked you to integrate the tool, copy one card between the
-   `MTECH TOOL CARDS START` and `MTECH TOOL CARDS END` comments in `index.html`.
-5. Do not edit `styles.css`, another tool, `.nojekyll`, or repository settings.
-6. Commit to your branch, push it, and open a pull request. Do not force-push to
+4. Keep the complete `MTECH TOP BAR START` through `MTECH TOP BAR END` block
+   from the template unchanged.
+5. If the request says to add, publish, or integrate the tool, copy one card
+   between the `MTECH TOOL CARDS START` and `MTECH TOOL CARDS END` comments in
+   `index.html`. A tool is not published until this card exists.
+6. Run `node scripts/check-site.mjs`. It confirms that every tool is listed and
+   uses the standard navigation.
+7. Do not edit `styles.css`, another tool, `.nojekyll`, or repository settings.
+8. Commit to your branch, push it, and open a pull request. Do not force-push to
    `main`.
 
 ## Before submitting
@@ -44,7 +50,13 @@ Use this path only if you are comfortable with GitHub Desktop or branches.
   where it goes and the maintainer approved that behavior.
 - No passwords, access tokens, private links, or personal data are included.
 - No packages, frameworks, build steps, or remote scripts were added.
+- The MTech top bar matches `tools/_template.html`.
+- The landing page includes exactly one card for every published tool.
 - Only the expected files changed.
+
+GitHub automatically runs the same tool-and-navigation check on proposed and
+published changes. If it turns red, open its message; it names the missing card
+or navigation item directly.
 
 If anything unexpected happens, stop. Do not delete shared files, rewrite Git
 history, or use force-push as a repair. Ask the maintainer for help.

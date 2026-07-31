@@ -20,10 +20,13 @@ index.html              Landing page and tool links
 styles.css              Landing page appearance
 tools/                  Independent, self-contained tools
 tools/_template.html    Safe starting point for a new tool
+scripts/check-site.mjs  Checks tool cards and shared navigation
 CONTRIBUTING.md          Human contribution instructions
 LLM-TOOL-GUIDE.md       Provider-neutral AI safety brief
 .nojekyll                Direct GitHub Pages publishing
 ```
 
 There is no build step and there are no packages to install. GitHub Pages serves
-the files directly from `main`.
+the files directly from `main`. Run `node scripts/check-site.mjs` before
+publishing; GitHub runs the same check automatically after a push or pull
+request.
