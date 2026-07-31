@@ -1,30 +1,29 @@
-# Group Site
+# MTech Tools
 
-A simple GitHub Pages landing page for small, self-contained HTML tools.
+A simple, shared home for small web tools created by the MTech group.
 
 Live site: <https://alexon-bench.github.io/group-site/>
 
-## Add a tool
+## Choose your path
 
-1. Ask ChatGPT to create one self-contained HTML file using plain HTML, CSS,
-   and JavaScript with no external packages.
-2. Save the file in `tools/` with a short name, such as `tools/my-tool.html`.
-3. Open `index.html`, copy the existing `tool-card` link, and change its name,
-   description, and `href`.
-4. Open `index.html` in a browser and test the new tool before committing.
-
-Because each tool lives in its own file, changing one tool does not affect the
-landing page or the other tools.
+- **No Git experience:** read [CONTRIBUTING.md](CONTRIBUTING.md), create one HTML
+  file with any AI assistant or editor, and send the finished file to the site
+  maintainer.
+- **Using an AI assistant:** give it the complete
+  [LLM Tool Guide](LLM-TOOL-GUIDE.md) before describing the tool you want.
+- **Comfortable with GitHub:** work on a separate branch and open a pull request.
 
 ## Project structure
 
 ```text
-index.html              Landing page content and tool links
+index.html              Landing page and tool links
 styles.css              Landing page appearance
-tools/                  Independent HTML tools
-favicon.svg             Browser tab icon
-.nojekyll                Tells GitHub Pages to serve files directly
+tools/                  Independent, self-contained tools
+tools/_template.html    Safe starting point for a new tool
+CONTRIBUTING.md          Human contribution instructions
+LLM-TOOL-GUIDE.md       Provider-neutral AI safety brief
+.nojekyll                Direct GitHub Pages publishing
 ```
 
 There is no build step and there are no packages to install. GitHub Pages serves
-these files directly from the `main` branch.
+the files directly from `main`.

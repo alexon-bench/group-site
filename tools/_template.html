@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Describe what this MTech tool does." />
+    <title>Tool name | MTech</title>
+    <style>
+      :root {
+        --ink: #141615;
+        --muted: #626763;
+        --paper: #f5f5f1;
+        --surface: #ffffff;
+        --line: #dadcd7;
+        --blue: #315cf5;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      }
+
+      main {
+        width: min(760px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 42px 0 80px;
+      }
+
+      a {
+        color: var(--blue);
+        font-weight: 700;
+        text-underline-offset: 4px;
+      }
+
+      h1 {
+        margin: 58px 0 12px;
+        font-size: clamp(2.7rem, 9vw, 5rem);
+        line-height: 0.98;
+        letter-spacing: -0.06em;
+      }
+
+      .intro {
+        max-width: 600px;
+        margin: 0 0 30px;
+        color: var(--muted);
+      }
+
+      .tool-panel {
+        padding: clamp(20px, 5vw, 36px);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--surface);
+      }
+
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible,
+      textarea:focus-visible,
+      a:focus-visible {
+        outline: 3px solid #aebdff;
+        outline-offset: 3px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { transition-duration: 0.01ms !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a href="../index.html">← Back to MTech tools</a>
+      <h1>Tool name</h1>
+      <p class="intro">Explain the tool in one clear sentence.</p>
+
+      <section class="tool-panel" aria-label="Tool name">
+        <!-- Build the tool interface here. -->
+        <p>Your tool starts here.</p>
+      </section>
+    </main>
+
+    <script>
+      // Add small, tool-specific behavior here. Keep all data in the browser.
+    </script>
+  </body>
+</html>
