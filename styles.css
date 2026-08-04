@@ -5,9 +5,12 @@
   --surface: #ffffff;
   --line: #dadcd7;
   --soft-line: #e9eae6;
-  --blue: #315cf5;
-  --blue-dark: #2447c8;
-  --blue-soft: #e8edff;
+  --accent: #b41e84;
+  --accent-dark: #8f1768;
+  --accent-soft: #f7e7f0;
+  --teal: #2c6d85;
+  --teal-soft: #e3eef1;
+  --navy: #33006d;
 }
 
 * {
@@ -90,7 +93,7 @@ nav a:hover,
 nav a:focus-visible,
 .site-footer a:hover,
 .site-footer a:focus-visible {
-  color: var(--blue);
+  color: var(--accent);
 }
 
 .hero {
@@ -118,7 +121,7 @@ nav a:focus-visible,
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--blue);
+  background: var(--teal);
 }
 
 h1,
@@ -171,13 +174,13 @@ h1 {
 }
 
 .button-primary {
-  background: var(--blue);
+  background: var(--accent);
   color: white;
 }
 
 .button-primary:hover,
 .button-primary:focus-visible {
-  background: var(--blue-dark);
+  background: var(--accent-dark);
 }
 
 .button-secondary {
@@ -289,15 +292,15 @@ h2 {
 
 .tool-card:hover,
 .tool-card:focus-visible {
-  border-color: var(--blue);
-  background: var(--blue-soft);
+  border-color: var(--accent);
+  background: var(--accent-soft);
   transform: translateY(-2px);
 }
 
 .tool-number {
   grid-area: number;
   align-self: center;
-  color: var(--blue);
+  color: var(--accent);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.72rem;
   font-weight: 700;
@@ -376,8 +379,8 @@ h2 {
   margin-bottom: 42px;
   place-items: center;
   border-radius: 50%;
-  background: var(--blue-soft);
-  color: var(--blue-dark);
+  background: var(--teal-soft);
+  color: var(--teal);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.78rem;
   font-weight: 800;
@@ -404,7 +407,7 @@ h2 {
   margin-top: 64px;
   padding: clamp(28px, 5vw, 54px);
   border-radius: 16px;
-  background: var(--ink);
+  background: var(--navy);
   color: white;
 }
 
@@ -447,7 +450,7 @@ h2 {
 
 .button-light:hover,
 .button-light:focus-visible {
-  background: var(--blue-soft);
+  background: var(--accent-soft);
 }
 
 .guide-link {
