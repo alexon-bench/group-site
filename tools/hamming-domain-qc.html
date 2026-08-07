@@ -1,0 +1,692 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Compare redesigned DNA, RNA, or protein domains with a template and review Hamming-distance quality checks.">
+<title>Hamming Domain QC | MTech</title>
+<style>
+  :root{
+    --pass:#1a7f37; --pass-bg:#e6f6ea;
+    --fail:#b3261e; --fail-bg:#fdecea;
+    --warn:#8a5a00; --warn-bg:#fff4dd;
+    --ink:#1d2129; --muted:#5b6270; --line:#dfe3e8; --bg:#f7f8fa; --card:#ffffff; --accent:#2f5fda;
+  }
+  *{box-sizing:border-box;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--ink); margin:0; padding:0 0 60px;
+  }
+
+  /* MTECH TOP BAR STYLES START: copy this block unchanged into every tool */
+  .site-header {
+    width: 100%;
+    border-bottom: 1px solid #dadcd7;
+    background: rgba(245, 245, 241, 0.94);
+  }
+
+  .header-inner {
+    display: flex;
+    width: min(1120px, calc(100% - 48px));
+    min-height: 76px;
+    margin-inline: auto;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: #141615;
+    font-size: 1.02rem;
+    font-weight: 760;
+    letter-spacing: -0.02em;
+    text-decoration: none;
+  }
+
+  .brand-mark {
+    display: grid;
+    width: 30px;
+    height: 30px;
+    place-items: center;
+    border-radius: 7px;
+    background: #141615;
+    color: white;
+    font-size: 0.82rem;
+    font-weight: 800;
+  }
+
+  .site-nav {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    color: #626763;
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+
+  .site-nav a {
+    color: inherit;
+    font-weight: inherit;
+    text-decoration: none;
+    transition: color 150ms ease;
+  }
+
+  .site-nav a:hover,
+  .site-nav a:focus-visible { color: #315cf5; }
+
+  @media (max-width: 560px) {
+    .header-inner { width: min(100% - 28px, 1120px); min-height: 68px; }
+    .site-nav { gap: 16px; }
+    .site-nav a:nth-child(2) { display: none; }
+  }
+  /* MTECH TOP BAR STYLES END */
+
+  .wrap{max-width:1000px;margin:0 auto;padding:28px 20px;}
+  h1{font-size:22px;margin:0 0 4px;}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 24px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px;margin-bottom:20px;}
+  .card h2{font-size:15px;margin:0 0 14px;display:flex;align-items:center;gap:8px;}
+  .step-num{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;font-weight:600;}
+  label{display:block;font-size:13px;color:var(--muted);margin:12px 0 5px;font-weight:500;}
+  label:first-child{margin-top:0;}
+  textarea, input[type=text], input[type=number], select{
+    width:100%;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;
+    border:1px solid var(--line);border-radius:6px;padding:9px 10px;background:#fbfbfc;color:var(--ink);
+  }
+  textarea{min-height:70px;resize:vertical;}
+  select, input[type=text]{font-family:inherit;}
+  .row{display:flex;gap:16px;flex-wrap:wrap;}
+  .row > div{flex:1;min-width:160px;}
+  .row-inline{display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap;}
+  .row-inline label{margin:0 0 5px;}
+  .num-field{max-width:140px;}
+  .file-row{display:flex;align-items:center;gap:10px;margin-top:10px;}
+  .file-row label{margin:0;}
+  input[type=file]{font-size:13px;}
+  button{
+    background:var(--accent);color:#fff;border:none;border-radius:6px;padding:10px 18px;
+    font-size:14px;font-weight:600;cursor:pointer;margin-top:16px;
+  }
+  button:hover{background:#264fc0;}
+  button:focus-visible,
+  input:focus-visible,
+  select:focus-visible,
+  textarea:focus-visible,
+  a:focus-visible{outline:3px solid #aebdff;outline-offset:3px;}
+  button.secondary{background:#fff;color:var(--accent);border:1px solid var(--accent);}
+  button.secondary:hover{background:#eef2fd;}
+  .btn-row{display:flex;gap:10px;flex-wrap:wrap;}
+  #summary{display:none;margin-bottom:20px;}
+  .summary-grid{display:flex;gap:12px;flex-wrap:wrap;}
+  .summary-pill{border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;flex:1;min-width:110px;text-align:center;}
+  .pill-total{background:#eef1f5;color:var(--ink);}
+  .pill-pass{background:var(--pass-bg);color:var(--pass);}
+  .pill-fail{background:var(--fail-bg);color:var(--fail);}
+  .pill-warn{background:var(--warn-bg);color:var(--warn);}
+  .pill-range{background:#eef2fd;color:var(--accent);}
+  .summary-pill .n{display:block;font-size:20px;}
+  #chart-section{display:none;}
+  .chart-scroll{overflow-x:auto;padding-bottom:6px;}
+  .chart-legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--muted);}
+  .chart-legend span{display:inline-flex;align-items:center;gap:6px;}
+  .swatch{width:10px;height:10px;border-radius:2px;display:inline-block;}
+  .idx-map{font-size:12px;color:var(--muted);margin-top:10px;line-height:1.7;}
+  #results-section{display:none;}
+  .result-card{border:1px solid var(--line);border-radius:8px;margin-bottom:12px;overflow:hidden;}
+  .result-head{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;font-size:13px;font-weight:600;}
+  .result-head .name{font-family:ui-monospace,monospace;}
+  .badge{border-radius:20px;padding:3px 12px;font-size:12px;font-weight:700;letter-spacing:.3px;}
+  .badge-pass{background:var(--pass-bg);color:var(--pass);}
+  .badge-fail{background:var(--fail-bg);color:var(--fail);}
+  .badge-warn{background:var(--warn-bg);color:var(--warn);}
+  .result-body{padding:12px 14px;font-size:13px;border-top:1px solid var(--line);}
+  .result-msg{margin:0 0 10px;line-height:1.5;}
+  .stat-line{color:var(--muted);font-size:12px;margin-bottom:8px;}
+  .stat-line b{color:var(--ink);}
+  table.mismatch{width:100%;border-collapse:collapse;font-family:ui-monospace,monospace;font-size:12px;margin-top:6px;}
+  table.mismatch th, table.mismatch td{border:1px solid var(--line);padding:4px 8px;text-align:center;}
+  table.mismatch th{background:#f2f3f6;font-weight:600;}
+  .seq-view{word-break:break-all;font-family:ui-monospace,monospace;font-size:12px;background:#fbfbfc;border:1px solid var(--line);border-radius:6px;padding:8px;margin-top:8px;line-height:1.7;}
+  .mm{background:#ffd9d6;color:var(--fail);font-weight:700;border-radius:2px;}
+  .invalid-note{color:var(--fail);font-size:12px;margin-top:6px;}
+  .hint{color:var(--muted);font-size:12px;margin-top:6px;}
+  footer{max-width:1000px;margin:0 auto;padding:0 20px;color:var(--muted);font-size:12px;}
+  #backToTop{
+    position:fixed;bottom:24px;right:24px;width:44px;height:44px;border-radius:50%;
+    background:var(--accent);color:#fff;font-size:18px;line-height:1;display:none;
+    align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.25);margin:0;
+    border:none;cursor:pointer;z-index:50;
+  }
+  #backToTop:hover{background:#264fc0;}
+  @media (max-width:560px){
+    .file-row{align-items:flex-start;flex-direction:column;}
+    input[type=file]{max-width:100%;}
+  }
+  @media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important;}
+  }
+</style>
+</head>
+<body>
+<!-- MTECH TOP BAR START: copy this block unchanged into every tool -->
+<header class="site-header" data-mtech-nav="v1">
+  <div class="header-inner">
+    <a class="brand" href="../index.html" aria-label="MTech home">
+      <span class="brand-mark" aria-hidden="true">M</span>
+      <span>MTech</span>
+    </a>
+    <nav class="site-nav" aria-label="Main navigation">
+      <a href="../index.html#tools">Tools</a>
+      <a href="../index.html#contribute">Contribute</a>
+      <a href="https://github.com/alexon-bench/group-site" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+    </nav>
+  </div>
+</header>
+<!-- MTECH TOP BAR END -->
+<main class="wrap">
+  <h1>Hamming — Domain Redesign QC Tool</h1>
+  <p class="sub">Checks redesigned domain sequences against the agreed template. Flags missing residues, residues outside the domain, and unexpected mutation counts before you order inserts.</p>
+
+  <div class="card">
+    <h2><span class="step-num">1</span>Template domain sequence</h2>
+    <div class="row">
+      <div>
+        <label for="domainName">Domain / construct name (optional)</label>
+        <input type="text" id="domainName" placeholder="e.g. Protein X, residues 45–112">
+      </div>
+      <div>
+        <label for="seqType">Sequence type</label>
+        <select id="seqType">
+          <option value="auto">Auto-detect</option>
+          <option value="dna">DNA</option>
+          <option value="rna">RNA</option>
+          <option value="protein">Protein (amino acid)</option>
+        </select>
+      </div>
+    </div>
+    <label for="templateSeq">Template sequence (the exact, agreed-upon domain boundaries)</label>
+    <textarea id="templateSeq" placeholder="Paste the template domain sequence here (letters only — a FASTA header is optional and will be ignored)"></textarea>
+    <div class="row-inline">
+      <div class="num-field">
+        <label for="minMut">Min expected mutations</label>
+        <input type="number" id="minMut" value="3" min="0">
+      </div>
+      <div class="num-field">
+        <label for="maxMut">Max expected mutations</label>
+        <input type="number" id="maxMut" value="5" min="0">
+      </div>
+      <div style="flex:2;min-width:220px;">
+        <p class="hint" style="margin-top:0;">A design PASSES only if its length exactly matches the template <em>and</em> its substitution count falls within this range. Any length mismatch always FAILS — it means residues are missing or extra.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="step-num">2</span>Designed sequence(s) to check</h2>
+    <label for="pasteInput">Paste sequence(s) — FASTA (<code>&gt;name</code> + sequence), CSV/TSV (<code>name,sequence</code>), or one raw sequence per line</label>
+    <textarea id="pasteInput" placeholder="&gt;design_1&#10;MSTAV...&#10;&gt;design_2&#10;MSTAK..."></textarea>
+    <div class="file-row">
+      <label for="fileInput">Upload a sequence file (optional)</label>
+      <input type="file" id="fileInput" accept=".csv,.tsv,.fasta,.fa,.txt" aria-describedby="fileHint">
+      <span class="hint" id="fileHint">CSV / FASTA contents are combined with anything pasted above</span>
+    </div>
+    <div class="btn-row">
+      <button id="runBtn" type="button">Run Hamming distance check</button>
+      <button class="secondary" id="exampleBtn" type="button">Load example</button>
+      <button class="secondary" id="clearBtn" type="button">Clear all</button>
+    </div>
+  </div>
+
+  <div class="card" id="summary" aria-live="polite">
+    <h2 style="margin-bottom:12px;">Summary</h2>
+    <div class="summary-grid" id="summaryGrid"></div>
+  </div>
+
+  <div class="card" id="chart-section" aria-label="Mutation count chart">
+    <h2>Mutations per sequence</h2>
+    <div class="chart-scroll" id="chartScroll"></div>
+    <div class="chart-legend" id="chartLegend"></div>
+    <div class="idx-map" id="idxMap"></div>
+  </div>
+
+  <div class="card" id="results-section" aria-live="polite">
+    <h2>Per-sequence results</h2>
+    <div id="resultsList"></div>
+    <button class="secondary" id="downloadBtn" type="button">Download results as CSV</button>
+  </div>
+
+  <footer>Runs entirely in your browser. Uploaded files are read locally, sequence data is never transmitted, and CSV downloads are created on this device.</footer>
+</main>
+
+<button id="backToTop" type="button" title="Back to top" aria-label="Back to top">&#8593;</button>
+
+<script>
+(function(){
+  const DNA_CHARS = "ACGTN";
+  const RNA_CHARS = "ACGUN";
+  const PROTEIN_CHARS = "ACDEFGHIKLMNPQRSTVWYXBZJUO*";
+
+  function clean(seq){
+    return (seq || "").replace(/\s+/g, "").replace(/[0-9]/g, "").toUpperCase();
+  }
+
+  function detectType(seq){
+    const chars = new Set(seq.split(""));
+    const isSubset = (set, allowed) => [...set].every(c => allowed.includes(c));
+    if (seq.length === 0) return "unknown";
+    if (isSubset(chars, DNA_CHARS) && chars.has("T")) return "dna";
+    if (isSubset(chars, RNA_CHARS) && chars.has("U")) return "rna";
+    if (isSubset(chars, DNA_CHARS)) return "dna"; // ambiguous short ACGT(N) -> default dna
+    if (isSubset(chars, PROTEIN_CHARS)) return "protein";
+    return "unknown";
+  }
+
+  function alphabetFor(type){
+    if (type === "dna") return DNA_CHARS;
+    if (type === "rna") return RNA_CHARS;
+    if (type === "protein") return PROTEIN_CHARS;
+    return null;
+  }
+
+  function invalidChars(seq, type){
+    const alpha = alphabetFor(type);
+    if (!alpha) return [];
+    const bad = [];
+    for (let i = 0; i < seq.length; i++){
+      if (!alpha.includes(seq[i])) bad.push({pos: i+1, char: seq[i]});
+    }
+    return bad;
+  }
+
+  // ---- Parsing pasted/uploaded text into [{name, seq}] ----
+  function parseEntries(rawText){
+    const text = (rawText || "").trim();
+    if (!text) return [];
+    const lines = text.split(/\r?\n/);
+
+    if (text.includes(">")){
+      // FASTA
+      const entries = [];
+      let current = null;
+      for (const line of lines){
+        const l = line.trim();
+        if (!l) continue;
+        if (l.startsWith(">")){
+          if (current) entries.push(current);
+          current = { name: l.slice(1).trim() || ("Seq " + (entries.length+1)), seq: "" };
+        } else if (current){
+          current.seq += l;
+        }
+      }
+      if (current) entries.push(current);
+      return entries.map(e => ({ name: e.name, seq: clean(e.seq) })).filter(e => e.seq.length);
+    }
+
+    // CSV / TSV / one-per-line
+    const delim = text.includes("\t") ? "\t" : (lines[0] && lines[0].includes(",") ? "," : null);
+    const entries = [];
+    let idx = 0;
+    for (const line of lines){
+      const l = line.trim();
+      if (!l) continue;
+      if (delim){
+        const parts = l.split(delim).map(p => p.trim().replace(/^"|"$/g, ""));
+        const firstColumn = (parts[0] || "").trim();
+        const secondColumn = (parts[1] || "").trim();
+        if (idx === 0 && /^(name|id|identifier|label)$/i.test(firstColumn) && /^(sequence|seq)$/i.test(secondColumn)){
+          idx++; continue;
+        }
+        if (parts.length >= 2){
+          entries.push({ name: parts[0] || ("Seq " + (entries.length+1)), seq: clean(parts[1]) });
+        } else if (parts.length === 1 && parts[0]){
+          idx++;
+          entries.push({ name: "Seq " + (entries.length+1), seq: clean(parts[0]) });
+          continue;
+        }
+      } else {
+        entries.push({ name: "Seq " + (entries.length+1), seq: clean(l) });
+      }
+      idx++;
+    }
+    return entries.filter(e => e.seq.length);
+  }
+
+  function hamming(a, b){
+    const n = Math.min(a.length, b.length);
+    const mismatches = [];
+    for (let i = 0; i < n; i++){
+      if (a[i] !== b[i]) mismatches.push({ pos: i+1, template: a[i], query: b[i] });
+    }
+    return mismatches;
+  }
+
+  function escapeHtml(s){
+    return s.replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+  }
+
+  function renderSeqView(templateSeq, querySeq, mismatchPositions){
+    const mmSet = new Set(mismatchPositions);
+    const n = Math.max(templateSeq.length, querySeq.length);
+    let out = "";
+    for (let i = 0; i < n; i++){
+      const qc = querySeq[i] !== undefined ? querySeq[i] : "–";
+      if (mmSet.has(i+1) || i >= templateSeq.length || i >= querySeq.length){
+        out += '<span class="mm">' + escapeHtml(qc) + '</span>';
+      } else {
+        out += escapeHtml(qc);
+      }
+    }
+    return out;
+  }
+
+  function runCheck(){
+    const domainName = document.getElementById("domainName").value.trim();
+    const seqTypeChoice = document.getElementById("seqType").value;
+    const template = clean(document.getElementById("templateSeq").value.replace(/^>.*$/m, ""));
+    const minMut = parseInt(document.getElementById("minMut").value, 10);
+    const maxMut = parseInt(document.getElementById("maxMut").value, 10);
+    const minExpected = isNaN(minMut) ? 0 : minMut;
+    const maxExpected = isNaN(maxMut) ? minExpected : maxMut;
+
+    if (!template){
+      alert("Please enter a template sequence.");
+      return;
+    }
+    if (minExpected > maxExpected){
+      alert("Min expected mutations cannot be greater than max expected mutations.");
+      return;
+    }
+
+    const templateType = seqTypeChoice === "auto" ? detectType(template) : seqTypeChoice;
+    const templateBad = invalidChars(template, templateType);
+
+    if (templateType === "unknown"){
+      alert("The template sequence type could not be detected. Choose DNA, RNA, or protein and remove unsupported characters.");
+      return;
+    }
+    if (templateBad.length){
+      alert(`The template contains unsupported characters: ${templateBad.slice(0,10).map(b=>b.char+"@"+b.pos).join(", ")}${templateBad.length>10?"…":""}`);
+      return;
+    }
+
+    const pasteEntries = parseEntries(document.getElementById("pasteInput").value);
+    const fileText = window.__uploadedFileText || "";
+    const fileEntries = parseEntries(fileText);
+    const allEntries = pasteEntries.concat(fileEntries);
+
+    if (!allEntries.length){
+      alert("Please paste or upload at least one designed sequence.");
+      return;
+    }
+
+    const results = allEntries.map(entry => evaluate(entry, template, templateType, minExpected, maxExpected));
+    renderResults(results, { domainName, template, templateType, templateBad, minExpected, maxExpected });
+  }
+
+  function evaluate(entry, template, templateType, minExpected, maxExpected){
+    const seq = entry.seq;
+    const qType = detectType(seq);
+    const effectiveType = templateType !== "unknown" ? templateType : qType;
+    const badChars = invalidChars(seq, effectiveType);
+
+    const lengthDiff = seq.length - template.length;
+    const base = { name: entry.name, seq, length: seq.length, templateLength: template.length, badChars };
+    const rangeLabel = minExpected === maxExpected ? `${minExpected}` : `${minExpected}–${maxExpected}`;
+
+    if (badChars.length){
+      return Object.assign(base, {
+        verdict: "FAIL",
+        title: "FAIL — invalid characters",
+        message: `The design contains ${badChars.length} unsupported character${badChars.length===1?"":"s"}. Correct the sequence before using this QC result.`,
+        mismatches: hamming(template, seq),
+        hammingValid: false
+      });
+    }
+
+    if (lengthDiff !== 0){
+      const longer = lengthDiff > 0;
+      const n = Math.abs(lengthDiff);
+      return Object.assign(base, {
+        verdict: "FAIL",
+        title: "FAIL — length mismatch",
+        message: (longer
+          ? `Design is ${n} residue${n>1?"s":""} LONGER than the template domain (${seq.length} vs ${template.length}). This means residues outside the agreed domain boundary were likely included. Do not submit — this insert will be built incorrectly.`
+          : `Design is ${n} residue${n>1?"s":""} SHORTER than the template domain (${seq.length} vs ${template.length}). This means one or more residues defined within the domain are missing from the design. Do not submit — this insert will be built incorrectly.`),
+        mismatches: hamming(template, seq),
+        hammingValid: false
+      });
+    }
+
+    const mismatches = hamming(template, seq);
+    const count = mismatches.length;
+    const inRange = count >= minExpected && count <= maxExpected;
+
+    if (count === 0){
+      return Object.assign(base, {
+        verdict: "WARN",
+        title: "WARNING — no mutations found",
+        message: `Length matches the template, but this sequence is identical to it. No redesign mutations were applied — check that you pasted the intended design.`,
+        mismatches,
+        hammingValid: true
+      });
+    }
+
+    if (inRange){
+      return Object.assign(base, {
+        verdict: "PASS",
+        title: "PASS",
+        message: `Length matches the template exactly and ${count} substitution${count>1?"s":""} ${count>1?"were":"was"} found — within the expected range of ${rangeLabel} mutation${maxExpected===1?"":"s"}. Domain boundaries are intact; no missing or extra residues.`,
+        mismatches,
+        hammingValid: true
+      });
+    }
+
+    return Object.assign(base, {
+      verdict: "WARN",
+      title: "WARNING — unexpected mutation count",
+      message: `Length matches the template (no missing/extra residues), but ${count} substitution${count>1?"s":""} ${count>1?"were":"was"} found, outside the expected range of ${rangeLabel}. Double-check the mutation list before ordering.`,
+      mismatches,
+      hammingValid: true
+    });
+  }
+
+  function renderResults(results, ctx){
+    const summaryEl = document.getElementById("summary");
+    const grid = document.getElementById("summaryGrid");
+    const pass = results.filter(r => r.verdict === "PASS").length;
+    const fail = results.filter(r => r.verdict === "FAIL").length;
+    const warn = results.filter(r => r.verdict === "WARN").length;
+
+    const validCounts = results.filter(r => r.hammingValid).map(r => r.mismatches.length);
+    const minDetected = validCounts.length ? Math.min(...validCounts) : "—";
+    const maxDetected = validCounts.length ? Math.max(...validCounts) : "—";
+
+    grid.innerHTML = `
+      <div class="summary-pill pill-total"><span class="n">${results.length}</span>checked</div>
+      <div class="summary-pill pill-pass"><span class="n">${pass}</span>pass</div>
+      <div class="summary-pill pill-warn"><span class="n">${warn}</span>warning</div>
+      <div class="summary-pill pill-fail"><span class="n">${fail}</span>fail</div>
+      <div class="summary-pill pill-range"><span class="n">${minDetected}</span>min detected</div>
+      <div class="summary-pill pill-range"><span class="n">${maxDetected}</span>max detected</div>
+    `;
+    summaryEl.style.display = "block";
+
+    renderChart(results, ctx.minExpected, ctx.maxExpected);
+
+    let templateNote = "";
+    if (ctx.templateBad.length){
+      templateNote = `<p class="invalid-note">Template contains ${ctx.templateBad.length} character(s) not valid for type "${ctx.templateType}": ${ctx.templateBad.slice(0,10).map(b=>b.char+"@"+b.pos).join(", ")}${ctx.templateBad.length>10?"…":""}</p>`;
+    }
+
+    const listEl = document.getElementById("resultsList");
+    listEl.innerHTML = (templateNote ? `<div class="card" style="background:#fff4dd;border-color:#f0c36d;">${templateNote}</div>` : "") +
+      results.map(r => {
+        const badgeClass = r.verdict === "PASS" ? "badge-pass" : (r.verdict === "FAIL" ? "badge-fail" : "badge-warn");
+        const hammingLabel = r.hammingValid
+          ? r.mismatches.length
+          : (r.badChars.length ? "n/a — invalid characters" : "n/a — length mismatch");
+        const mmRows = r.hammingValid && r.mismatches.length
+          ? `<table class="mismatch"><tr><th>Position</th><th>Template</th><th>Design</th></tr>` +
+            r.mismatches.map(m => `<tr><td>${m.pos}</td><td>${escapeHtml(m.template)}</td><td>${escapeHtml(m.query)}</td></tr>`).join("") +
+            `</table>`
+          : "";
+        const badCharNote = r.badChars.length
+          ? `<p class="invalid-note">Contains ${r.badChars.length} character(s) not valid for the detected/selected sequence type: ${r.badChars.slice(0,10).map(b=>b.char+"@"+b.pos).join(", ")}${r.badChars.length>10?"…":""}</p>`
+          : "";
+        return `
+          <div class="result-card">
+            <div class="result-head">
+              <span class="name">${escapeHtml(r.name)}</span>
+              <span class="badge ${badgeClass}">${r.title}</span>
+            </div>
+            <div class="result-body">
+              <div class="stat-line">Length: <b>${r.length}</b> (template: <b>${r.templateLength}</b>) &nbsp;|&nbsp; Hamming distance: <b>${hammingLabel}</b></div>
+              <p class="result-msg">${r.message}</p>
+              ${badCharNote}
+              ${mmRows}
+              <div class="seq-view">${renderSeqView(ctx.template, r.seq, r.mismatches.map(m=>m.pos))}</div>
+            </div>
+          </div>`;
+      }).join("");
+
+    document.getElementById("results-section").style.display = "block";
+    window.__lastResults = results;
+  }
+
+  function verdictColor(v){
+    return v === "PASS" ? "#1a7f37" : (v === "FAIL" ? "#b3261e" : "#8a5a00");
+  }
+
+  function renderChart(results, minExpected, maxExpected){
+    const section = document.getElementById("chart-section");
+    const scroll = document.getElementById("chartScroll");
+    const legend = document.getElementById("chartLegend");
+    const idxMap = document.getElementById("idxMap");
+
+    const counts = results.map(r => r.hammingValid ? r.mismatches.length : null);
+    const validCounts = counts.filter(value => value !== null);
+    const maxVal = Math.max(maxExpected, ...validCounts, 1);
+    const barW = 34, gap = 18, leftPad = 44, rightPad = 16, topPad = 16, bottomPad = 28;
+    const chartH = 220;
+    const plotH = chartH - topPad - bottomPad;
+    const n = results.length;
+    const chartW = leftPad + n * (barW + gap) + rightPad;
+
+    const yTicks = 4;
+    let axisSvg = "";
+    for (let t = 0; t <= yTicks; t++){
+      const val = Math.round((maxVal / yTicks) * t);
+      const y = topPad + plotH - (val / maxVal) * plotH;
+      axisSvg += `<line x1="${leftPad}" y1="${y}" x2="${chartW-rightPad}" y2="${y}" stroke="#e8eaee" stroke-width="1"/>`;
+      axisSvg += `<text x="${leftPad-8}" y="${y+3}" font-size="10" fill="#5b6270" text-anchor="end">${val}</text>`;
+    }
+
+    // expected-range shaded band
+    const yMin = topPad + plotH - (minExpected / maxVal) * plotH;
+    const yMax = topPad + plotH - (maxExpected / maxVal) * plotH;
+    const bandSvg = `<rect x="${leftPad}" y="${yMax}" width="${chartW-leftPad-rightPad}" height="${Math.max(yMin-yMax,1)}" fill="#2f5fda" opacity="0.08"/>`;
+
+    let bars = "";
+    let mapLines = [];
+    results.forEach((r, i) => {
+      const x = leftPad + i * (barW + gap);
+      const val = counts[i];
+      const h = val === null ? 0 : (val / maxVal) * plotH;
+      const y = topPad + plotH - h;
+      const color = verdictColor(r.verdict);
+      const chartValue = val === null ? "n/a" : val;
+      bars += `<g>
+        <title>${escapeHtml(r.name)}: ${val === null ? "Hamming distance not applicable" : `${val} mutation${val===1?"":"s"}`} (${r.title})</title>
+        <rect x="${x}" y="${y}" width="${barW}" height="${Math.max(h,1)}" fill="${color}" rx="3"></rect>
+        <text x="${x + barW/2}" y="${topPad+plotH+16}" font-size="11" fill="#5b6270" text-anchor="middle">${i+1}</text>
+        <text x="${x + barW/2}" y="${y-5}" font-size="10" fill="#1d2129" text-anchor="middle">${chartValue}</text>
+      </g>`;
+      mapLines.push(`<b>${i+1}</b> = ${escapeHtml(r.name)}`);
+    });
+
+    const svg = `<svg width="${chartW}" height="${chartH}" viewBox="0 0 ${chartW} ${chartH}" xmlns="http://www.w3.org/2000/svg">
+      ${bandSvg}
+      ${axisSvg}
+      <line x1="${leftPad}" y1="${topPad+plotH}" x2="${chartW-rightPad}" y2="${topPad+plotH}" stroke="#c9ccd3" stroke-width="1"/>
+      ${bars}
+    </svg>`;
+
+    scroll.innerHTML = svg;
+    legend.innerHTML = `
+      <span><span class="swatch" style="background:#1a7f37;"></span>Pass</span>
+      <span><span class="swatch" style="background:#8a5a00;"></span>Warning</span>
+      <span><span class="swatch" style="background:#b3261e;"></span>Fail (length mismatch)</span>
+      <span><span class="swatch" style="background:#2f5fda;opacity:.3;"></span>Expected range (${minExpected}–${maxExpected})</span>
+    `;
+    idxMap.innerHTML = mapLines.join(" &nbsp;·&nbsp; ");
+    section.style.display = "block";
+  }
+
+  function downloadCsv(){
+    const results = window.__lastResults;
+    if (!results || !results.length) return;
+    const rows = [["name","verdict","length","template_length","hamming_distance","message"]];
+    results.forEach(r => {
+      rows.push([r.name, r.title, r.length, r.templateLength, r.hammingValid ? r.mismatches.length : "n/a", r.message.replace(/"/g,"'")]);
+    });
+    const csv = rows.map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "hamming_qc_results.csv";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
+
+  document.getElementById("fileInput").addEventListener("change", function(e){
+    const file = e.target.files[0];
+    if (!file) { window.__uploadedFileText = ""; return; }
+    const reader = new FileReader();
+    reader.onload = function(evt){ window.__uploadedFileText = evt.target.result; };
+    reader.readAsText(file);
+  });
+
+  document.getElementById("runBtn").addEventListener("click", runCheck);
+  document.getElementById("downloadBtn").addEventListener("click", downloadCsv);
+  document.getElementById("clearBtn").addEventListener("click", function(){
+    document.getElementById("templateSeq").value = "";
+    document.getElementById("pasteInput").value = "";
+    document.getElementById("domainName").value = "";
+    document.getElementById("fileInput").value = "";
+    window.__uploadedFileText = "";
+    document.getElementById("summary").style.display = "none";
+    document.getElementById("chart-section").style.display = "none";
+    document.getElementById("results-section").style.display = "none";
+  });
+  document.getElementById("exampleBtn").addEventListener("click", function(){
+    document.getElementById("domainName").value = "Example domain (protein)";
+    document.getElementById("seqType").value = "protein";
+    document.getElementById("templateSeq").value = "MSTAVKLPQGERWTYNHDCFI";
+    document.getElementById("minMut").value = 3;
+    document.getElementById("maxMut").value = 5;
+    document.getElementById("pasteInput").value =
+">design_correct_4mut\nMSRAEKLPTGERWTYNHDTFI\n" +
+">design_missing_residue\nMSTAVKLPQGRWTYNHDCFI\n" +
+">design_extra_residue\nMSTAVKLPQGQERWTYNHDCFI\n" +
+">design_too_many_mutations\nISTSVKAPQGERQEWKHDCFQ\n" +
+">design_no_mutations\nMSTAVKLPQGERWTYNHDCFI";
+  });
+
+  // Back-to-top button follows scroll
+  const backBtn = document.getElementById("backToTop");
+  window.addEventListener("scroll", function(){
+    backBtn.style.display = window.scrollY > 300 ? "flex" : "none";
+  });
+  backBtn.addEventListener("click", function(){
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: 0, behavior: reducedMotion ? "auto" : "smooth" });
+  });
+})();
+</script>
+</body>
+</html>
