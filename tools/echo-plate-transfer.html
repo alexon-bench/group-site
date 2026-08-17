@@ -1,0 +1,2165 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Build an Echo liquid handler transfer list by clicking wells on a 384-well plate, then export it as a CSV." />
+    <title>Echo Planner and Worklist Generator | MTech</title>
+    <style>
+      :root {
+        --ink: #141615;
+        --muted: #626763;
+        --paper: #f5f5f1;
+        --surface: #ffffff;
+        --line: #dadcd7;
+        --blue: #315cf5;
+        --green: #2fae63;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      }
+
+      /* MTECH TOP BAR STYLES START: copy this block unchanged into every tool */
+      .site-header {
+        width: 100%;
+        border-bottom: 1px solid #dadcd7;
+        background: rgba(245, 245, 241, 0.94);
+      }
+
+      .header-inner {
+        display: flex;
+        width: min(1120px, calc(100% - 48px));
+        min-height: 76px;
+        margin-inline: auto;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: #141615;
+        font-size: 1.02rem;
+        font-weight: 760;
+        letter-spacing: -0.02em;
+        text-decoration: none;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 30px;
+        height: 30px;
+        place-items: center;
+        border-radius: 7px;
+        background: #141615;
+        color: white;
+        font-size: 0.82rem;
+        font-weight: 800;
+      }
+
+      .site-nav {
+        display: flex;
+        align-items: center;
+        gap: 30px;
+        color: #626763;
+        font-size: 0.9rem;
+        font-weight: 600;
+      }
+
+      .site-nav a {
+        color: inherit;
+        font-weight: inherit;
+        text-decoration: none;
+        transition: color 150ms ease;
+      }
+
+      .site-nav a:hover,
+      .site-nav a:focus-visible { color: #315cf5; }
+
+      @media (max-width: 560px) {
+        .header-inner { width: min(100% - 28px, 1120px); min-height: 68px; }
+        .site-nav { gap: 16px; }
+        .site-nav a:nth-child(2) { display: none; }
+      }
+      /* MTECH TOP BAR STYLES END */
+
+      main {
+        width: min(980px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 42px 0 80px;
+      }
+
+      a {
+        color: var(--blue);
+        font-weight: 700;
+        text-underline-offset: 4px;
+      }
+
+      h1 {
+        margin: 58px 0 12px;
+        font-size: clamp(2.4rem, 8vw, 4.2rem);
+        line-height: 0.98;
+        letter-spacing: -0.06em;
+      }
+
+      .intro {
+        max-width: 680px;
+        margin: 0 0 30px;
+        color: var(--muted);
+      }
+
+      .tool-panel {
+        padding: clamp(20px, 5vw, 36px);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--surface);
+      }
+
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible,
+      textarea:focus-visible,
+      a:focus-visible {
+        outline: 3px solid #aebdff;
+        outline-offset: 3px;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { transition-duration: 0.01ms !important; }
+      }
+
+      /* Tool-specific styles */
+      h3 {
+        margin: 0 0 4px;
+        font-size: 1.1rem;
+      }
+
+      .section-divider {
+        margin: 44px 0 24px;
+        padding-top: 28px;
+        border-top: 3px solid var(--ink);
+      }
+
+      .section-divider:first-of-type {
+        margin-top: 0;
+        padding-top: 0;
+        border-top: none;
+      }
+
+      .section-divider h2 {
+        margin: 0 0 6px;
+        font-size: 1.5rem;
+        letter-spacing: -0.02em;
+      }
+
+      .section-divider p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .top-actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 16px;
+      }
+
+      .config-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 16px;
+        margin-bottom: 32px;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .field label {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--muted);
+      }
+
+      .config-grid .field label {
+        min-height: 2.4em;
+      }
+
+      .field input,
+      .field select {
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--paper);
+        color: var(--ink);
+      }
+
+      .plate-block {
+        margin-bottom: 28px;
+      }
+
+      .plate-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+
+      .plate-status {
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+
+      .link-btn {
+        appearance: none;
+        border: none;
+        background: none;
+        color: var(--blue);
+        font-weight: 700;
+        font-size: 0.85rem;
+        cursor: pointer;
+        padding: 0;
+      }
+
+      .source-plate-block {
+        border-top: 1px solid var(--line);
+        margin-top: 24px;
+        padding-top: 24px;
+      }
+
+      .source-plate-block:first-child {
+        border-top: none;
+        margin-top: 0;
+        padding-top: 0;
+      }
+
+      .source-plate-block-head {
+        display: flex;
+        align-items: flex-end;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-bottom: 14px;
+      }
+
+      .source-plate-block-head .field {
+        min-width: 200px;
+      }
+
+      .source-plate-block-head .plate-status {
+        margin-bottom: 10px;
+      }
+
+      .source-plate-block-head .link-btn {
+        padding-bottom: 10px;
+        white-space: nowrap;
+      }
+
+      .add-source-plate-btn {
+        margin-top: 20px;
+        padding: 9px 16px;
+        border: 1px dashed var(--line);
+        border-radius: 8px;
+        background: none;
+        cursor: pointer;
+        font-weight: 700;
+        color: var(--blue);
+      }
+
+      .plate-body-row {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        align-items: flex-start;
+      }
+
+      .plate-wrap {
+        overflow-x: auto;
+        padding-bottom: 4px;
+      }
+
+      .plate-grid {
+        display: inline-grid;
+        grid-template-columns: 24px repeat(24, 22px);
+        gap: 2px;
+        user-select: none;
+        touch-action: none;
+      }
+
+      .plate-grid--locked {
+        pointer-events: none;
+        opacity: 0.45;
+      }
+
+      .grid-label {
+        appearance: none;
+        border: none;
+        background: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.62rem;
+        font-weight: 700;
+        color: var(--muted);
+        cursor: pointer;
+        padding: 0;
+      }
+
+      .grid-label:hover { color: var(--blue); }
+
+      .corner { cursor: default; }
+
+      .well {
+        width: 22px;
+        height: 22px;
+        border-radius: 4px;
+        border: 1px solid var(--line);
+        background: var(--paper);
+        font-size: 0.46rem;
+        font-weight: 700;
+        line-height: 1;
+        padding: 0;
+        cursor: pointer;
+        color: var(--ink);
+      }
+
+      .well.selected {
+        color: #fff;
+        font-weight: 800;
+      }
+
+      .well.active-group {
+        outline: 2px solid var(--ink);
+        outline-offset: -2px;
+      }
+
+      .well.well-shaded {
+        opacity: 0.32;
+      }
+
+      .well.preview-add {
+        box-shadow: 0 0 0 3px var(--blue);
+        position: relative;
+        z-index: 1;
+      }
+
+      .well.preview-remove {
+        box-shadow: 0 0 0 3px #c22b2b;
+        position: relative;
+        z-index: 1;
+      }
+
+      .well.well-overflow {
+        box-shadow: 0 0 0 3px #c22b2b;
+        position: relative;
+        z-index: 1;
+      }
+
+      /* Groups panel (right of each source plate) */
+      .groups-panel {
+        flex: 1;
+        min-width: 260px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .group-row {
+        border: 1px solid var(--line);
+        border-left-width: 4px;
+        border-radius: 8px;
+        padding: 10px;
+        background: var(--paper);
+      }
+
+      .group-row--active {
+        outline: 2px solid var(--ink);
+        outline-offset: 1px;
+      }
+
+      .group-row-top {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+
+      .group-name-input {
+        flex: 1;
+        min-width: 0;
+        padding: 6px 8px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        font-weight: 700;
+        background: var(--surface);
+      }
+
+      .group-select-btn {
+        font-size: 0.72rem;
+        padding: 5px 8px;
+        border-radius: 6px;
+        border: 1px solid var(--line);
+        background: var(--surface);
+        cursor: pointer;
+        font-weight: 700;
+        white-space: nowrap;
+      }
+
+      .group-select-btn[aria-pressed="true"] {
+        background: var(--ink);
+        color: #fff;
+        border-color: var(--ink);
+      }
+
+      .group-added-badge {
+        font-size: 0.68rem;
+        font-weight: 700;
+        color: var(--green);
+        border: 1px solid var(--green);
+        border-radius: 999px;
+        padding: 2px 8px;
+        white-space: nowrap;
+      }
+
+      .group-remove-btn {
+        font-size: 0.72rem;
+        color: #c22b2b;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 4px;
+      }
+
+      .group-volume-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.8rem;
+        margin-bottom: 6px;
+        color: var(--muted);
+      }
+
+      .group-volume-row input {
+        width: 80px;
+        padding: 5px 7px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--surface);
+      }
+
+      .group-wells-line {
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+
+      .group-shade-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.78rem;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+
+      .group-requirement {
+        font-size: 0.78rem;
+        line-height: 1.4;
+      }
+
+      .group-requirement--error {
+        color: #a01f1f;
+        font-weight: 700;
+      }
+
+      .group-requirement--ok {
+        color: var(--green);
+      }
+
+      .add-group-btn {
+        align-self: flex-start;
+        padding: 9px 16px;
+        border: 1px dashed var(--line);
+        border-radius: 8px;
+        background: none;
+        cursor: pointer;
+        font-weight: 700;
+        color: var(--blue);
+      }
+
+      /* Destination summary panel (read-only) */
+      .block-summary {
+        flex: 1;
+        min-width: 240px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .block-summary-item {
+        padding: 8px 10px;
+        border: 1px solid var(--line);
+        border-left-width: 4px;
+        border-radius: 8px;
+        background: var(--paper);
+        font-size: 0.82rem;
+        line-height: 1.45;
+      }
+
+      .block-summary-item strong {
+        font-size: 0.85rem;
+      }
+
+      .block-summary-item--error {
+        background: #fdecec;
+        border-color: #c22b2b;
+      }
+
+      .action-row {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin: 24px 0;
+        padding: 16px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--paper);
+      }
+
+      .action-row button {
+        padding: 10px 18px;
+        border: none;
+        border-radius: 8px;
+        background: var(--blue);
+        color: #fff;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .action-row button:disabled {
+        background: var(--line);
+        color: var(--muted);
+        cursor: not-allowed;
+      }
+
+      .status-msg {
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+
+      .status-msg.error { color: #c22b2b; }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+      }
+
+      th, td {
+        text-align: left;
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      th { color: var(--muted); font-size: 0.8rem; }
+
+      .transfer-scroll {
+        max-height: 320px;
+        overflow-y: auto;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        margin-top: 12px;
+      }
+
+      .transfer-scroll table { margin-top: 0; }
+
+      .transfer-scroll thead th {
+        position: sticky;
+        top: 0;
+        background: var(--surface);
+        z-index: 1;
+      }
+
+      .remove-btn {
+        appearance: none;
+        border: none;
+        background: none;
+        color: #c22b2b;
+        font-weight: 700;
+        cursor: pointer;
+        padding: 2px 6px;
+      }
+
+      .table-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 12px;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .secondary-btn {
+        appearance: none;
+        border: 1px solid var(--line);
+        background: var(--surface);
+        color: var(--ink);
+        padding: 8px 14px;
+        border-radius: 8px;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .csv-columns {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 8px 16px;
+        font-size: 0.85rem;
+        margin-bottom: 8px;
+      }
+
+      .csv-columns label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .export-row {
+        display: flex;
+        align-items: flex-end;
+        gap: 16px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+      }
+
+      .empty-note {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .block-swatch {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+        margin-right: 6px;
+        vertical-align: middle;
+      }
+
+      .caution-note {
+        margin: 20px 0 0;
+        padding: 12px 16px;
+        border: 1px solid #e8c468;
+        background: #fdf6e3;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        color: #6b5410;
+      }
+
+      .storage-note {
+        margin: 16px 0 0;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- MTECH TOP BAR START: copy this block unchanged into every tool -->
+    <header class="site-header" data-mtech-nav="v1">
+      <div class="header-inner">
+        <a class="brand" href="../index.html" aria-label="MTech home">
+          <span class="brand-mark" aria-hidden="true">M</span>
+          <span>MTech</span>
+        </a>
+        <nav class="site-nav" aria-label="Main navigation">
+          <a href="../index.html#tools">Tools</a>
+          <a href="../index.html#contribute">Contribute</a>
+          <a href="https://github.com/alexon-bench/group-site" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+        </nav>
+      </div>
+    </header>
+    <!-- MTECH TOP BAR END -->
+    <main>
+      <h1>Echo Planner and Worklist Generator</h1>
+      <p class="intro">
+        Create a sample "group" for each reagent, click or drag to assign it
+        source wells and destination wells, then set its transfer volume in
+        the panel next to its source plate. Add more than one source plate if
+        you need to — each gets its own name, its own groups, and its own
+        exported CSV, all paired with the single destination plate. A group
+        belongs to exactly one source plate; only the plate whose group is
+        currently being edited is clickable. A destination well can belong to
+        several groups at once. Group and plate labels are for your
+        reference only and are never written to the CSV.
+      </p>
+
+      <section class="tool-panel" aria-label="Echo transfer builder">
+        <div class="top-actions">
+          <button type="button" class="link-btn" id="clear-everything-btn">Clear everything</button>
+        </div>
+
+        <div class="section-divider">
+          <h2>1. Design</h2>
+          <p>Set up plates, build sample groups, and assign wells.</p>
+        </div>
+
+        <div class="config-grid">
+          <div class="field">
+            <label for="dest-plate-name">Destination plate name (for CSV)</label>
+            <input type="text" id="dest-plate-name" value="1" />
+          </div>
+          <div class="field">
+            <label for="dest-plate-barcode">Destination plate barcode (optional)</label>
+            <input type="text" id="dest-plate-barcode" />
+          </div>
+          <div class="field">
+            <label for="source-plate-type">Source plate type</label>
+            <select id="source-plate-type">
+              <option value="12">Low dead volume (12 µL/well)</option>
+              <option value="25" selected>Regular dead volume (25 µL/well)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="dest-plate-type">Destination plate type</label>
+            <select id="dest-plate-type">
+              <option value="12">Low dead volume (12 µL/well)</option>
+              <option value="25" selected>Regular dead volume (25 µL/well)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="default-volume">New group's default volume (nL, max 5000)</label>
+            <input type="number" id="default-volume" min="0" max="5000" step="any" value="50" />
+            <span class="status-msg error" id="default-volume-error" hidden>Enter a value of 5000 nL or less.</span>
+          </div>
+        </div>
+
+        <div class="plate-block">
+          <div class="plate-head">
+            <h3>Source plates</h3>
+          </div>
+          <div id="source-plates-list"></div>
+          <button type="button" class="add-source-plate-btn" id="add-source-plate-btn">+ Add source plate</button>
+        </div>
+
+        <div class="plate-block">
+          <div class="plate-head">
+            <h3>Destination plate</h3>
+            <span class="plate-status" id="dest-status" aria-live="polite">0 wells assigned</span>
+            <button type="button" class="link-btn" id="dest-clear">Clear destination wells</button>
+          </div>
+          <div class="plate-body-row">
+            <div class="plate-wrap">
+              <div class="plate-grid" id="dest-grid" role="group" aria-label="Destination plate wells"></div>
+            </div>
+            <div class="block-summary" id="dest-block-summary" aria-live="polite"></div>
+          </div>
+        </div>
+
+        <h3>Sample names</h3>
+        <p class="empty-note" id="set-names-empty">Assign destination wells to see naming options for each combination of source groups.</p>
+        <div id="set-names-list" class="block-summary"></div>
+
+        <div class="action-row">
+          <button type="button" id="add-transfer-btn" disabled>Add transfer(s)</button>
+          <p class="status-msg" id="add-status">
+            Assign source and destination wells to a group, then add it to the
+            list below.
+          </p>
+        </div>
+
+        <div class="section-divider">
+          <h2>2. Planning</h2>
+          <p>Review committed transfers and check well capacity requirements.</p>
+        </div>
+
+        <h3>Transfer list</h3>
+        <p class="empty-note" id="empty-note">No transfers added yet.</p>
+        <div class="transfer-scroll">
+          <table id="transfer-table" hidden>
+            <thead>
+              <tr>
+                <th>Source well</th>
+                <th>Destination well</th>
+                <th>Volume (nL)</th>
+                <th><span class="visually-hidden">Remove</span></th>
+              </tr>
+            </thead>
+            <tbody id="transfer-body"></tbody>
+          </table>
+        </div>
+
+        <div class="table-actions">
+          <button type="button" class="secondary-btn" id="clear-all-btn">Clear all transfers</button>
+          <span class="plate-status" id="transfer-summary"></span>
+        </div>
+
+        <div class="source-plate-block-head" style="margin-bottom: 6px;">
+          <h3 style="margin: 0;">Source well planning</h3>
+          <label style="display: flex; align-items: center; gap: 6px; font-size: 0.85rem; color: var(--muted);">
+            <input type="checkbox" id="source-overage-checkbox" /> Add 5% extra volume
+          </label>
+        </div>
+        <p class="empty-note" id="source-block-empty">Add transfers to see how many source wells were used per group, including dead volume.</p>
+        <div class="plate-wrap">
+          <table id="source-block-table" hidden>
+            <thead>
+              <tr>
+                <th>Group</th>
+                <th>Wells used</th>
+                <th>Volume drawn</th>
+                <th>Wells recommended</th>
+                <th>Avg. / well</th>
+                <th>Dead volume</th>
+                <th>Minimum volume to prepare</th>
+              </tr>
+            </thead>
+            <tbody id="source-block-body"></tbody>
+          </table>
+        </div>
+
+        <h3>Destination well planning</h3>
+        <p class="empty-note" id="dest-block-empty">Add transfers to see the same breakdown for destination wells.</p>
+        <div class="plate-wrap">
+          <table id="dest-block-table" hidden>
+            <thead>
+              <tr>
+                <th>Group</th>
+                <th>Wells used</th>
+                <th>Volume received</th>
+                <th>Avg. / well</th>
+              </tr>
+            </thead>
+            <tbody id="dest-block-body"></tbody>
+          </table>
+        </div>
+
+        <div class="section-divider">
+          <h2>3. Export</h2>
+          <p>Choose which columns to include, then download the CSV(s).</p>
+        </div>
+
+        <h3>CSV columns</h3>
+        <p class="empty-note">Choose which columns to include. They're written in this order.</p>
+        <div class="csv-columns" id="csv-columns">
+          <label><input type="checkbox" data-col="sampleName" /> Sample Name</label>
+          <label><input type="checkbox" data-col="sourcePlateName" checked /> Source Plate Name</label>
+          <label><input type="checkbox" data-col="sourcePlateBarcode" /> Source Plate Barcode</label>
+          <label><input type="checkbox" data-col="sourcePlateType" /> Source Plate Type</label>
+          <label><input type="checkbox" data-col="sourceWell" checked /> Source Well</label>
+          <label><input type="checkbox" data-col="destPlateName" checked /> Destination Plate Name</label>
+          <label><input type="checkbox" data-col="destPlateBarcode" /> Destination Plate Barcode</label>
+          <label><input type="checkbox" data-col="destWell" checked /> Destination Well</label>
+          <label><input type="checkbox" data-col="transferVolume" checked /> Transfer Volume</label>
+          <label><input type="checkbox" data-col="sampleComment" /> Sample Comment</label>
+        </div>
+
+        <div class="export-row">
+          <div class="field">
+            <label for="filename">File name</label>
+            <input type="text" id="filename" value="echo_transfer" />
+          </div>
+          <button type="button" class="secondary-btn" id="download-btn">Download CSV(s)</button>
+        </div>
+
+        <p class="caution-note">
+          Before running this on the Echo: reopen each exported CSV and
+          confirm the source/destination wells and volumes match what you
+          intended, and double-check the file name and file type are what
+          the Echo software expects for import. Always run the transfer in
+          the instrument software's simulation/preview mode before executing
+          it for real.
+        </p>
+
+        <p class="storage-note">
+          This tool does not use any browser storage. Group and source-plate
+          labels are for your reference only and are not written to the CSV.
+          Everything you build lives only in this page and is lost when you
+          reload or close the tab, so export the CSV before navigating away.
+        </p>
+      </section>
+    </main>
+
+    <script>
+      const ROWS = 'ABCDEFGHIJKLMNOP'.split('');
+      const COLS = Array.from({ length: 24 }, (_, i) => i + 1);
+
+      const GROUP_COLORS = [
+        '#315cf5', // blue
+        '#2fae63', // green
+        '#c22b2b', // red
+        '#8a4fd1', // purple
+        '#1f9fae', // teal
+        '#d9761c', // orange
+        '#c9348f', // magenta
+        '#55606b', // slate
+      ];
+
+      const PLATE_TYPES = {
+        12: { deadVolume: 12, minWorking: 5, maxWorking: 16 },
+        25: { deadVolume: 25, minWorking: 14, maxWorking: 60 },
+      };
+
+      const PLATE_TYPE_LABELS = {
+        12: 'Low Dead Volume',
+        25: 'Regular Dead Volume',
+      };
+
+      const CSV_COLUMNS = [
+        { key: 'sampleName', header: 'Sample Name', get: (t) => t.sampleName },
+        { key: 'sourcePlateName', header: 'Source Plate Name', get: (t) => t.sourcePlate },
+        { key: 'sourcePlateBarcode', header: 'Source Plate Barcode', get: (t) => t.sourcePlateBarcode },
+        { key: 'sourcePlateType', header: 'Source Plate Type', get: (t) => t.sourcePlateTypeLabel },
+        { key: 'sourceWell', header: 'Source Well', get: (t) => t.source },
+        { key: 'destPlateName', header: 'Destination Plate Name', get: (t) => t.destPlate },
+        { key: 'destPlateBarcode', header: 'Destination Plate Barcode', get: (t) => t.destPlateBarcode },
+        { key: 'destWell', header: 'Destination Well', get: (t) => t.destination },
+        { key: 'transferVolume', header: 'Transfer Volume', get: (t) => t.volume },
+        { key: 'sampleComment', header: 'Sample Comment', get: (t) => t.sampleComment },
+      ];
+
+      const destPlateName = document.getElementById('dest-plate-name');
+      const destPlateBarcodeInput = document.getElementById('dest-plate-barcode');
+      const sourcePlateType = document.getElementById('source-plate-type');
+      const destPlateType = document.getElementById('dest-plate-type');
+      const defaultVolumeInput = document.getElementById('default-volume');
+      const defaultVolumeErrorEl = document.getElementById('default-volume-error');
+      const sourcePlatesListEl = document.getElementById('source-plates-list');
+      const destGrid = document.getElementById('dest-grid');
+      const destStatus = document.getElementById('dest-status');
+      const destBlockSummaryEl = document.getElementById('dest-block-summary');
+      const setNamesListEl = document.getElementById('set-names-list');
+      const setNamesEmptyEl = document.getElementById('set-names-empty');
+      const addBtn = document.getElementById('add-transfer-btn');
+      const addStatus = document.getElementById('add-status');
+      const transferTable = document.getElementById('transfer-table');
+      const transferBody = document.getElementById('transfer-body');
+      const emptyNote = document.getElementById('empty-note');
+      const transferSummary = document.getElementById('transfer-summary');
+      const filenameInput = document.getElementById('filename');
+      const sourceBlockTable = document.getElementById('source-block-table');
+      const sourceBlockBody = document.getElementById('source-block-body');
+      const sourceBlockEmpty = document.getElementById('source-block-empty');
+      const destBlockTable = document.getElementById('dest-block-table');
+      const destBlockBody = document.getElementById('dest-block-body');
+      const destBlockEmpty = document.getElementById('dest-block-empty');
+
+      let sourcePlateIdCounter = 0;
+      let sourcePlates = []; // { id, label, plateName, blockEl, gridEl, groupsPanelEl, statusEl }
+
+      let groupIdCounter = 0;
+      let groups = []; // { id, sourcePlateId, name, volumeNl, sourceWells: [well...], destWells: [well...], shadeUnused }
+      let activeGroupId = null;
+      let transfers = [];
+      const groupNamesById = {};
+      let setNamesByKey = {};
+      let sourceOverageEnabled = false;
+
+      let drag = null; // { prefix, plateId, startWell, currentWell, mode: 'add' | 'remove' }
+      let pointerHandledClick = false;
+
+      function colorFor(id) {
+        return GROUP_COLORS[(id - 1) % GROUP_COLORS.length];
+      }
+
+      // ---------- Source plates ----------
+
+      function getSourcePlate(id) {
+        return sourcePlates.find((p) => p.id === id);
+      }
+
+      function groupsForPlate(plateId) {
+        return groups.filter((g) => g.sourcePlateId === plateId);
+      }
+
+      function createSourcePlate() {
+        sourcePlateIdCounter += 1;
+        const id = sourcePlateIdCounter;
+        const plate = { id, label: `Plate ${id}`, plateName: String(id), barcode: '' };
+        sourcePlates.push(plate);
+        return plate;
+      }
+
+      function removeSourcePlate(id) {
+        if (sourcePlates.length <= 1) return;
+        groups = groups.filter((g) => g.sourcePlateId !== id);
+        const plate = getSourcePlate(id);
+        if (plate && plate.blockEl) plate.blockEl.remove();
+        sourcePlates = sourcePlates.filter((p) => p.id !== id);
+        if (activeGroupId !== null && !getGroup(activeGroupId)) {
+          activeGroupId = groups.length ? groups[groups.length - 1].id : null;
+        }
+      }
+
+      function resetSourcePlate(id) {
+        const plate = getSourcePlate(id);
+        if (!plate) return;
+        if (!confirm(`Clear all wells and groups on "${plate.label}"? This cannot be undone.`)) return;
+        groups = groups.filter((g) => g.sourcePlateId !== id);
+        createGroup(id);
+        renderAll();
+      }
+
+      function buildSourcePlateBlock(plate) {
+        const block = document.createElement('div');
+        block.className = 'source-plate-block';
+
+        const head = document.createElement('div');
+        head.className = 'source-plate-block-head';
+
+        const labelField = document.createElement('div');
+        labelField.className = 'field';
+        const labelLabelEl = document.createElement('label');
+        labelLabelEl.textContent = 'Plate label (for you)';
+        labelLabelEl.htmlFor = `source-plate-label-${plate.id}`;
+        const labelInput = document.createElement('input');
+        labelInput.type = 'text';
+        labelInput.id = `source-plate-label-${plate.id}`;
+        labelInput.value = plate.label;
+        labelInput.addEventListener('input', () => {
+          plate.label = labelInput.value || `Plate ${plate.id}`;
+          renderGroupsPanelForPlate(plate);
+        });
+        labelField.appendChild(labelLabelEl);
+        labelField.appendChild(labelInput);
+
+        const nameField = document.createElement('div');
+        nameField.className = 'field';
+        const nameLabelEl = document.createElement('label');
+        nameLabelEl.textContent = 'Source Plate Name (written to CSV)';
+        nameLabelEl.htmlFor = `source-plate-name-${plate.id}`;
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.id = `source-plate-name-${plate.id}`;
+        nameInput.value = plate.plateName;
+        nameInput.addEventListener('input', () => {
+          plate.plateName = nameInput.value;
+        });
+        nameField.appendChild(nameLabelEl);
+        nameField.appendChild(nameInput);
+
+        const barcodeField = document.createElement('div');
+        barcodeField.className = 'field';
+        const barcodeLabelEl = document.createElement('label');
+        barcodeLabelEl.textContent = 'Source Plate Barcode (optional, for CSV)';
+        barcodeLabelEl.htmlFor = `source-plate-barcode-${plate.id}`;
+        const barcodeInput = document.createElement('input');
+        barcodeInput.type = 'text';
+        barcodeInput.id = `source-plate-barcode-${plate.id}`;
+        barcodeInput.value = plate.barcode;
+        barcodeInput.addEventListener('input', () => {
+          plate.barcode = barcodeInput.value;
+        });
+        barcodeField.appendChild(barcodeLabelEl);
+        barcodeField.appendChild(barcodeInput);
+
+        const statusEl = document.createElement('span');
+        statusEl.className = 'plate-status';
+        statusEl.setAttribute('aria-live', 'polite');
+        plate.statusEl = statusEl;
+
+        const clearBtn = document.createElement('button');
+        clearBtn.type = 'button';
+        clearBtn.className = 'link-btn';
+        clearBtn.textContent = 'Clear this plate';
+        clearBtn.addEventListener('click', () => resetSourcePlate(plate.id));
+
+        head.appendChild(labelField);
+        head.appendChild(nameField);
+        head.appendChild(barcodeField);
+        head.appendChild(statusEl);
+        head.appendChild(clearBtn);
+
+        if (sourcePlates.length > 1) {
+          const removeBtn = document.createElement('button');
+          removeBtn.type = 'button';
+          removeBtn.className = 'link-btn';
+          removeBtn.textContent = 'Remove this plate';
+          removeBtn.addEventListener('click', () => {
+            const hasWells = groupsForPlate(plate.id).some((g) => g.sourceWells.length || g.destWells.length);
+            if (hasWells && !confirm(`Remove "${plate.label}" and clear its groups?`)) return;
+            removeSourcePlate(plate.id);
+            renderAll();
+          });
+          head.appendChild(removeBtn);
+        }
+
+        block.appendChild(head);
+
+        const bodyRow = document.createElement('div');
+        bodyRow.className = 'plate-body-row';
+
+        const wrap = document.createElement('div');
+        wrap.className = 'plate-wrap';
+        const gridEl = document.createElement('div');
+        gridEl.className = 'plate-grid';
+        gridEl.setAttribute('role', 'group');
+        gridEl.setAttribute('aria-label', `${plate.label} wells`);
+        buildPlate(gridEl, 'source', plate.id);
+        wrap.appendChild(gridEl);
+        plate.gridEl = gridEl;
+
+        const groupsPanelEl = document.createElement('div');
+        groupsPanelEl.className = 'groups-panel';
+        plate.groupsPanelEl = groupsPanelEl;
+
+        bodyRow.appendChild(wrap);
+        bodyRow.appendChild(groupsPanelEl);
+        block.appendChild(bodyRow);
+
+        plate.blockEl = block;
+        sourcePlatesListEl.appendChild(block);
+      }
+
+      // ---------- Groups ----------
+
+      function getGroup(id) {
+        return groups.find((g) => g.id === id);
+      }
+
+      function createGroup(sourcePlateId) {
+        groupIdCounter += 1;
+        const id = groupIdCounter;
+        const group = {
+          id,
+          sourcePlateId,
+          name: `Group ${id}`,
+          volumeNl: Math.min(5000, Number(defaultVolumeInput.value) || 50),
+          sourceWells: [],
+          destWells: [],
+          shadeUnused: true,
+          comment: '',
+          added: false,
+        };
+        groupNamesById[id] = group.name;
+        groups.push(group);
+        activeGroupId = id;
+        return group;
+      }
+
+      function removeGroup(id) {
+        const group = getGroup(id);
+        if (!group) return;
+        if (groupsForPlate(group.sourcePlateId).length <= 1) return;
+        groups = groups.filter((g) => g.id !== id);
+        if (activeGroupId === id) {
+          const remaining = groupsForPlate(group.sourcePlateId);
+          activeGroupId = remaining.length ? remaining[remaining.length - 1].id : null;
+        }
+      }
+
+      function canEditSourcePlate(plateId) {
+        const g = getGroup(activeGroupId);
+        return !!g && g.sourcePlateId === plateId;
+      }
+
+      function sourceGroupOf(plateId, wellId) {
+        const g = groups.find((grp) => grp.sourcePlateId === plateId && grp.sourceWells.includes(wellId));
+        return g ? g.id : undefined;
+      }
+
+      function destGroupsOf(wellId) {
+        return groups.filter((grp) => grp.destWells.includes(wellId)).map((grp) => grp.id);
+      }
+
+      function existingGroupsOf(prefix, plateId, wellId) {
+        if (prefix === 'source') {
+          const gid = sourceGroupOf(plateId, wellId);
+          return gid === undefined ? [] : [gid];
+        }
+        return destGroupsOf(wellId);
+      }
+
+      function applyGroupToSourceWells(plateId, wellIds, groupId, add) {
+        const group = getGroup(groupId);
+        if (!group || group.sourcePlateId !== plateId) return;
+        group.added = false;
+        wellIds.forEach((wellId) => {
+          groupsForPlate(plateId).forEach((g) => {
+            const idx = g.sourceWells.indexOf(wellId);
+            if (idx !== -1 && (g.id !== groupId || !add)) g.sourceWells.splice(idx, 1);
+          });
+          if (add && !group.sourceWells.includes(wellId)) {
+            group.sourceWells.push(wellId);
+          }
+        });
+      }
+
+      function applyGroupToDestWells(wellIds, groupId, add) {
+        const group = getGroup(groupId);
+        if (!group) return;
+        group.added = false;
+        wellIds.forEach((wellId) => {
+          const idx = group.destWells.indexOf(wellId);
+          if (add) {
+            if (idx === -1) group.destWells.push(wellId);
+          } else if (idx !== -1) {
+            group.destWells.splice(idx, 1);
+          }
+        });
+      }
+
+      // ---------- Geometry ----------
+
+      function parseWell(wellId) {
+        const match = wellId.match(/^([A-P])(\d{1,2})$/);
+        return { rowIndex: ROWS.indexOf(match[1]), colIndex: COLS.indexOf(Number(match[2])) };
+      }
+
+      function wellReadingIndex(wellId) {
+        const { rowIndex, colIndex } = parseWell(wellId);
+        return rowIndex * COLS.length + colIndex;
+      }
+
+      function rectangleWells(wellIdA, wellIdB) {
+        const a = parseWell(wellIdA);
+        const b = parseWell(wellIdB);
+        const rowMin = Math.min(a.rowIndex, b.rowIndex);
+        const rowMax = Math.max(a.rowIndex, b.rowIndex);
+        const colMin = Math.min(a.colIndex, b.colIndex);
+        const colMax = Math.max(a.colIndex, b.colIndex);
+        const wells = [];
+        for (let r = rowMin; r <= rowMax; r += 1) {
+          for (let c = colMin; c <= colMax; c += 1) {
+            wells.push(`${ROWS[r]}${COLS[c]}`);
+          }
+        }
+        return wells;
+      }
+
+      // ---------- Drag / click handling ----------
+
+      document.addEventListener('pointerup', () => {
+        if (drag) {
+          commitDrag();
+          drag = null;
+        }
+      });
+
+      function buildPlate(container, prefix, plateId) {
+        const corner = document.createElement('span');
+        corner.className = 'grid-label corner';
+        container.appendChild(corner);
+
+        COLS.forEach((col) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'grid-label';
+          btn.textContent = col;
+          btn.setAttribute('aria-label', `Select column ${col}`);
+          btn.addEventListener('click', () => {
+            const ids = ROWS.map((row) => `${row}${col}`);
+            toggleLine(prefix, plateId, ids);
+          });
+          container.appendChild(btn);
+        });
+
+        ROWS.forEach((row) => {
+          const rowBtn = document.createElement('button');
+          rowBtn.type = 'button';
+          rowBtn.className = 'grid-label';
+          rowBtn.textContent = row;
+          rowBtn.setAttribute('aria-label', `Select row ${row}`);
+          rowBtn.addEventListener('click', () => {
+            const ids = COLS.map((col) => `${row}${col}`);
+            toggleLine(prefix, plateId, ids);
+          });
+          container.appendChild(rowBtn);
+
+          COLS.forEach((col) => {
+            const wellId = `${row}${col}`;
+            const well = document.createElement('button');
+            well.type = 'button';
+            well.className = 'well';
+            well.dataset.well = wellId;
+            well.setAttribute('aria-pressed', 'false');
+            well.setAttribute('aria-label', `${prefix === 'source' ? 'Source' : 'Destination'} well ${wellId}`);
+            well.title = wellId;
+
+            well.addEventListener('pointerdown', (e) => {
+              if (e.pointerType === 'mouse' && e.button !== 0) return;
+              if (activeGroupId === null) return;
+              if (prefix === 'source' && !canEditSourcePlate(plateId)) return;
+              pointerHandledClick = true;
+              const isMember = existingGroupsOf(prefix, plateId, wellId).includes(activeGroupId);
+              drag = { prefix, plateId, startWell: wellId, currentWell: wellId, mode: isMember ? 'remove' : 'add' };
+              updatePreview();
+            });
+
+            well.addEventListener('pointerenter', () => {
+              if (drag && drag.prefix === prefix && drag.plateId === plateId) {
+                drag.currentWell = wellId;
+                updatePreview();
+              }
+            });
+
+            well.addEventListener('click', () => {
+              if (pointerHandledClick) {
+                pointerHandledClick = false;
+                return;
+              }
+              toggleWell(prefix, plateId, wellId);
+            });
+
+            container.appendChild(well);
+          });
+        });
+      }
+
+      function gridFor(prefix, plateId) {
+        if (prefix === 'source') {
+          const plate = getSourcePlate(plateId);
+          return plate ? plate.gridEl : null;
+        }
+        return destGrid;
+      }
+
+      function updatePreview() {
+        const rectSet = new Set(rectangleWells(drag.startWell, drag.currentWell));
+        const grid = gridFor(drag.prefix, drag.plateId);
+        if (!grid) return;
+        grid.querySelectorAll('.well').forEach((well) => {
+          const inRect = rectSet.has(well.dataset.well);
+          well.classList.toggle('preview-add', inRect && drag.mode === 'add');
+          well.classList.toggle('preview-remove', inRect && drag.mode === 'remove');
+        });
+      }
+
+      function clearPreview(prefix, plateId) {
+        const grid = gridFor(prefix, plateId);
+        if (!grid) return;
+        grid.querySelectorAll('.well').forEach((well) => {
+          well.classList.remove('preview-add', 'preview-remove');
+        });
+      }
+
+      function commitDrag() {
+        if (activeGroupId === null) return;
+        const { prefix, plateId, startWell, currentWell, mode } = drag;
+        if (prefix === 'source' && !canEditSourcePlate(plateId)) {
+          clearPreview(prefix, plateId);
+          return;
+        }
+        const rect = rectangleWells(startWell, currentWell);
+        if (prefix === 'source') applyGroupToSourceWells(plateId, rect, activeGroupId, mode === 'add');
+        else applyGroupToDestWells(rect, activeGroupId, mode === 'add');
+        clearPreview(prefix, plateId);
+        renderAll();
+      }
+
+      function toggleWell(prefix, plateId, wellId) {
+        if (activeGroupId === null) return;
+        if (prefix === 'source') {
+          if (!canEditSourcePlate(plateId)) return;
+          const isMember = sourceGroupOf(plateId, wellId) === activeGroupId;
+          applyGroupToSourceWells(plateId, [wellId], activeGroupId, !isMember);
+        } else {
+          const isMember = destGroupsOf(wellId).includes(activeGroupId);
+          applyGroupToDestWells([wellId], activeGroupId, !isMember);
+        }
+        renderAll();
+      }
+
+      function toggleLine(prefix, plateId, wellIds) {
+        if (activeGroupId === null) return;
+        if (prefix === 'source') {
+          if (!canEditSourcePlate(plateId)) return;
+          const allMember = wellIds.every((id) => sourceGroupOf(plateId, id) === activeGroupId);
+          applyGroupToSourceWells(plateId, wellIds, activeGroupId, !allMember);
+        } else {
+          const allMember = wellIds.every((id) => destGroupsOf(id).includes(activeGroupId));
+          applyGroupToDestWells(wellIds, activeGroupId, !allMember);
+        }
+        renderAll();
+      }
+
+      // ---------- Requirement math ----------
+
+      function formatUl(n) {
+        return Number(n.toFixed(2)).toString();
+      }
+
+      function formatVolumeAuto(nl) {
+        return nl >= 1000 ? `${formatUl(nl / 1000)} µL` : `${formatUl(nl)} nL`;
+      }
+
+      function groupRequirement(group) {
+        const type = PLATE_TYPES[Number(sourcePlateType.value)];
+        const neededNl = group.destWells.length * group.volumeNl;
+        const maxWorkingNl = type.maxWorking * 1000;
+        const recommendedWells = group.destWells.length > 0 ? Math.max(1, Math.ceil(neededNl / maxWorkingNl)) : 0;
+        const deadTotalUl = recommendedWells * type.deadVolume;
+        const prepareUl = neededNl / 1000 + deadTotalUl;
+        const shortfall = Math.max(0, recommendedWells - group.sourceWells.length);
+        return { neededNl, recommendedWells, prepareUl, shortfall, type };
+      }
+
+      function effectiveSourceWells(group) {
+        const req = groupRequirement(group);
+        if (!group.shadeUnused || req.recommendedWells === 0 || group.sourceWells.length <= req.recommendedWells) {
+          return group.sourceWells;
+        }
+        const sorted = [...group.sourceWells].sort((a, b) => wellReadingIndex(a) - wellReadingIndex(b));
+        return sorted.slice(0, req.recommendedWells);
+      }
+
+      function requirementHtml(group) {
+        if (group.destWells.length === 0) {
+          return `<span>No destination wells assigned yet.</span>`;
+        }
+        if (group.sourceWells.length === 0) {
+          const needed = group.destWells.length * group.volumeNl;
+          return `<span class="group-requirement--error">${group.destWells.length} destination well${group.destWells.length === 1 ? '' : 's'} need ${formatVolumeAuto(needed)} total. No source wells assigned yet.</span>`;
+        }
+        const req = groupRequirement(group);
+        if (req.shortfall > 0) {
+          return `<span class="group-requirement--error">${group.destWells.length} destination well${group.destWells.length === 1 ? '' : 's'} need ${formatVolumeAuto(req.neededNl)} total.<br>Select at least ${req.recommendedWells} source well${req.recommendedWells === 1 ? '' : 's'} (you have ${group.sourceWells.length}) — select ${req.shortfall} more.</span>`;
+        }
+        const wellsNote =
+          group.sourceWells.length > req.recommendedWells
+            ? `using ${req.recommendedWells} of your ${group.sourceWells.length} selected wells (the rest aren't needed)`
+            : `across your ${group.sourceWells.length} selected well${group.sourceWells.length === 1 ? '' : 's'}`;
+        return `<span class="group-requirement--ok">${group.destWells.length} destination well${group.destWells.length === 1 ? '' : 's'} need ${formatVolumeAuto(req.neededNl)} total.<br>Prepare ≈${formatUl(req.prepareUl)} µL ${wellsNote} (incl. dead volume).</span>`;
+      }
+
+      // ---------- Rendering ----------
+
+      function renderOnePlateWells(plate) {
+        const locked = !canEditSourcePlate(plate.id);
+        plate.gridEl.classList.toggle('plate-grid--locked', locked);
+
+        const inUseByGroup = {};
+        groupsForPlate(plate.id).forEach((g) => {
+          inUseByGroup[g.id] = new Set(effectiveSourceWells(g));
+        });
+
+        let assignedCount = 0;
+        plate.gridEl.querySelectorAll('.well').forEach((well) => {
+          const wellId = well.dataset.well;
+          const gid = sourceGroupOf(plate.id, wellId);
+          const selected = gid !== undefined;
+          if (selected) assignedCount += 1;
+          const shaded = selected && !inUseByGroup[gid].has(wellId);
+          well.classList.toggle('selected', selected);
+          well.classList.toggle('active-group', gid === activeGroupId);
+          well.classList.toggle('well-shaded', shaded);
+          well.setAttribute('aria-pressed', String(selected));
+          well.textContent = selected ? String(gid) : '';
+          well.style.background = selected ? colorFor(gid) : '';
+          well.style.borderColor = selected ? colorFor(gid) : '';
+          well.title = shaded ? `${wellId} — not needed for this group's transfer volume` : wellId;
+        });
+
+        if (plate.statusEl) {
+          plate.statusEl.textContent = `${assignedCount} well${assignedCount === 1 ? '' : 's'} assigned`;
+        }
+      }
+
+      function renderDestWells() {
+        let assignedCount = 0;
+        const overflowWellIds = new Set(destWellOverflows().map((o) => o.wellId));
+
+        destGrid.querySelectorAll('.well').forEach((well) => {
+          const wellId = well.dataset.well;
+          const gids = destGroupsOf(wellId).sort((a, b) => a - b);
+          const selected = gids.length > 0;
+          if (selected) assignedCount += 1;
+          const overflow = overflowWellIds.has(wellId);
+          well.classList.toggle('selected', selected);
+          well.classList.toggle('active-group', gids.includes(activeGroupId));
+          well.classList.toggle('well-overflow', overflow);
+          well.setAttribute('aria-pressed', String(selected));
+          well.textContent = selected ? gids.join(',') : '';
+          if (!selected) {
+            well.style.background = '';
+            well.style.borderColor = '';
+          } else if (gids.length === 1) {
+            well.style.background = colorFor(gids[0]);
+            well.style.borderColor = colorFor(gids[0]);
+          } else {
+            const step = 100 / gids.length;
+            const stops = gids
+              .map((g, i) => `${colorFor(g)} ${Math.round(i * step)}%, ${colorFor(g)} ${Math.round((i + 1) * step)}%`)
+              .join(', ');
+            well.style.background = `linear-gradient(135deg, ${stops})`;
+            well.style.borderColor = 'var(--ink)';
+          }
+          well.title = overflow ? `${wellId} — exceeds destination well capacity` : wellId;
+        });
+        destStatus.textContent = `${assignedCount} well${assignedCount === 1 ? '' : 's'} assigned`;
+      }
+
+      function renderGroupsPanelForPlate(plate) {
+        const panel = plate.groupsPanelEl;
+        panel.innerHTML = '';
+
+        groupsForPlate(plate.id).forEach((group) => {
+          const row = document.createElement('div');
+          row.className = 'group-row' + (group.id === activeGroupId ? ' group-row--active' : '');
+          row.style.borderLeftColor = colorFor(group.id);
+          row.style.cursor = 'pointer';
+          row.addEventListener('click', (e) => {
+            if (e.target.closest('input, button')) return;
+            activeGroupId = group.id;
+            renderAll();
+          });
+
+          const top = document.createElement('div');
+          top.className = 'group-row-top';
+
+          const nameInput = document.createElement('input');
+          nameInput.type = 'text';
+          nameInput.className = 'group-name-input';
+          nameInput.value = group.name;
+          nameInput.setAttribute('aria-label', `Name for group ${group.id}`);
+          nameInput.addEventListener('input', () => {
+            group.name = nameInput.value || `Group ${group.id}`;
+            groupNamesById[group.id] = group.name;
+            renderDestSummary();
+          });
+
+          const selectBtn = document.createElement('button');
+          selectBtn.type = 'button';
+          selectBtn.className = 'group-select-btn';
+          const isActive = group.id === activeGroupId;
+          selectBtn.textContent = isActive ? 'Editing' : 'Edit';
+          selectBtn.setAttribute('aria-pressed', String(isActive));
+          selectBtn.addEventListener('click', () => {
+            activeGroupId = group.id;
+            renderAll();
+          });
+
+          top.appendChild(nameInput);
+          if (group.added) {
+            const addedBadge = document.createElement('span');
+            addedBadge.className = 'group-added-badge';
+            addedBadge.textContent = 'Added';
+            top.appendChild(addedBadge);
+          }
+          top.appendChild(selectBtn);
+
+          if (groupsForPlate(plate.id).length > 1) {
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'group-remove-btn';
+            removeBtn.textContent = 'Remove';
+            removeBtn.setAttribute('aria-label', `Remove group ${group.name}`);
+            removeBtn.addEventListener('click', () => {
+              if ((group.sourceWells.length || group.destWells.length) && !confirm(`Remove "${group.name}" and clear its well assignments?`)) return;
+              removeGroup(group.id);
+              renderAll();
+            });
+            top.appendChild(removeBtn);
+          }
+
+          row.appendChild(top);
+
+          const volumeRow = document.createElement('div');
+          volumeRow.className = 'group-volume-row';
+          const volumeLabel = document.createElement('label');
+          volumeLabel.textContent = 'Transfer volume';
+          volumeLabel.htmlFor = `group-volume-${group.id}`;
+          const volumeInput = document.createElement('input');
+          volumeInput.type = 'number';
+          volumeInput.id = `group-volume-${group.id}`;
+          volumeInput.min = '0';
+          volumeInput.max = '5000';
+          volumeInput.step = 'any';
+          volumeInput.value = group.volumeNl;
+          const volumeUnit = document.createElement('span');
+          volumeUnit.textContent = 'nL (max 5000)';
+
+          const reqEl = document.createElement('div');
+          reqEl.className = 'group-requirement';
+          reqEl.innerHTML = requirementHtml(group);
+
+          volumeInput.addEventListener('input', () => {
+            let v = Number(volumeInput.value);
+            if (v > 5000) {
+              v = 5000;
+              volumeInput.value = '5000';
+            }
+            group.volumeNl = v || 0;
+            group.added = false;
+            reqEl.innerHTML = requirementHtml(group);
+            renderDestSummary();
+            renderDestWells();
+            updateAddButton();
+          });
+
+          volumeRow.appendChild(volumeLabel);
+          volumeRow.appendChild(volumeInput);
+          volumeRow.appendChild(volumeUnit);
+          row.appendChild(volumeRow);
+
+          const commentRow = document.createElement('div');
+          commentRow.className = 'group-volume-row';
+          const commentLabel = document.createElement('label');
+          commentLabel.textContent = 'Comment';
+          commentLabel.htmlFor = `group-comment-${group.id}`;
+          const commentInput = document.createElement('input');
+          commentInput.type = 'text';
+          commentInput.id = `group-comment-${group.id}`;
+          commentInput.style.width = '140px';
+          commentInput.value = group.comment;
+          commentInput.addEventListener('input', () => {
+            group.comment = commentInput.value;
+          });
+          commentRow.appendChild(commentLabel);
+          commentRow.appendChild(commentInput);
+          row.appendChild(commentRow);
+
+          const wellsLine = document.createElement('div');
+          wellsLine.className = 'group-wells-line';
+          wellsLine.textContent = `${group.sourceWells.length} source well${group.sourceWells.length === 1 ? '' : 's'} · ${group.destWells.length} destination well${group.destWells.length === 1 ? '' : 's'}`;
+          row.appendChild(wellsLine);
+
+          const req = groupRequirement(group);
+          if (req.recommendedWells > 0 && group.sourceWells.length > req.recommendedWells) {
+            const shadeLabel = document.createElement('label');
+            shadeLabel.className = 'group-shade-row';
+            const shadeCb = document.createElement('input');
+            shadeCb.type = 'checkbox';
+            shadeCb.checked = group.shadeUnused;
+            shadeCb.addEventListener('change', () => {
+              group.shadeUnused = shadeCb.checked;
+              renderOnePlateWells(plate);
+            });
+            shadeLabel.appendChild(shadeCb);
+            shadeLabel.appendChild(document.createTextNode('Shade wells not needed'));
+            row.appendChild(shadeLabel);
+          }
+
+          row.appendChild(reqEl);
+          panel.appendChild(row);
+        });
+
+        const addGroupBtn = document.createElement('button');
+        addGroupBtn.type = 'button';
+        addGroupBtn.className = 'add-group-btn';
+        addGroupBtn.textContent = '+ New group';
+        addGroupBtn.addEventListener('click', () => {
+          createGroup(plate.id);
+          renderAll();
+        });
+        panel.appendChild(addGroupBtn);
+      }
+
+      function renderDestSummary() {
+        destBlockSummaryEl.innerHTML = '';
+
+        const overflows = destWellOverflows();
+        if (overflows.length) {
+          const warn = document.createElement('div');
+          warn.className = 'block-summary-item block-summary-item--error';
+          warn.style.borderLeftColor = '#c22b2b';
+          const list = overflows
+            .map((o) => `${o.wellId}: ${formatVolumeAuto(o.totalNl)} (max ${formatUl(o.maxNl / 1000)} µL)`)
+            .join('; ');
+          warn.innerHTML = `<strong>Over capacity</strong><br>${list}`;
+          destBlockSummaryEl.appendChild(warn);
+        }
+
+        const active = groups.filter((g) => g.destWells.length > 0);
+
+        if (!active.length) {
+          const note = document.createElement('p');
+          note.className = 'empty-note';
+          note.textContent = 'No wells assigned yet.';
+          destBlockSummaryEl.appendChild(note);
+          return;
+        }
+
+        active.forEach((group) => {
+          const item = document.createElement('div');
+          const req = groupRequirement(group);
+          const plate = getSourcePlate(group.sourcePlateId);
+          item.className = 'block-summary-item' + (req.shortfall > 0 ? ' block-summary-item--error' : '');
+          item.style.borderLeftColor = colorFor(group.id);
+
+          const text = document.createElement('div');
+          text.innerHTML = `<strong>${group.name}</strong> <span style="color:var(--muted);">(${plate ? plate.label : 'unknown plate'})</span><br>${group.destWells.length} well${group.destWells.length === 1 ? '' : 's'} × ${group.volumeNl} nL = <strong>${formatVolumeAuto(req.neededNl)}</strong> needed from source`;
+          item.appendChild(text);
+
+          const removeBtn = document.createElement('button');
+          removeBtn.type = 'button';
+          removeBtn.className = 'link-btn';
+          removeBtn.style.marginTop = '6px';
+          removeBtn.textContent = 'Remove from destination';
+          removeBtn.setAttribute('aria-label', `Remove ${group.name} from the destination plate only`);
+          removeBtn.addEventListener('click', () => {
+            if (!confirm(`Remove "${group.name}" from the destination plate? Its source wells stay assigned.`)) return;
+            group.destWells = [];
+            group.added = false;
+            renderAll();
+          });
+          item.appendChild(removeBtn);
+
+          destBlockSummaryEl.appendChild(item);
+        });
+      }
+
+      function destWellTotalVolumeNl(wellId) {
+        const committed = transfers
+          .filter((t) => t.destination === wellId)
+          .reduce((sum, t) => sum + t.volume, 0);
+        const pending = groups
+          .filter((g) => !g.added && g.destWells.includes(wellId))
+          .reduce((sum, g) => sum + g.volumeNl, 0);
+        return committed + pending;
+      }
+
+      function destWellOverflows() {
+        const type = PLATE_TYPES[Number(destPlateType.value)];
+        const maxNl = type.maxWorking * 1000;
+        const wellIds = new Set();
+        transfers.forEach((t) => wellIds.add(t.destination));
+        groups.forEach((g) => g.destWells.forEach((w) => wellIds.add(w)));
+        const overflows = [];
+        wellIds.forEach((wellId) => {
+          const totalNl = destWellTotalVolumeNl(wellId);
+          if (totalNl > maxNl) overflows.push({ wellId, totalNl, maxNl });
+        });
+        return overflows.sort((a, b) => wellReadingIndex(a.wellId) - wellReadingIndex(b.wellId));
+      }
+
+      function computeDestSets() {
+        const wellIds = new Set();
+        groups.forEach((g) => g.destWells.forEach((w) => wellIds.add(w)));
+        const setsByKey = {};
+        wellIds.forEach((wellId) => {
+          const gids = destGroupsOf(wellId).sort((a, b) => a - b);
+          if (!gids.length) return;
+          const key = gids.join(',');
+          if (!setsByKey[key]) setsByKey[key] = { key, groupIds: gids, wells: [] };
+          setsByKey[key].wells.push(wellId);
+        });
+        return Object.values(setsByKey).sort((a, b) => a.key.localeCompare(b.key));
+      }
+
+      function renderSetNames() {
+        const sets = computeDestSets();
+        setNamesListEl.innerHTML = '';
+
+        if (!sets.length) {
+          setNamesEmptyEl.hidden = false;
+          return;
+        }
+        setNamesEmptyEl.hidden = true;
+
+        sets.forEach((setInfo) => {
+          const item = document.createElement('div');
+          item.className = 'block-summary-item';
+          item.style.borderLeftColor = colorFor(setInfo.groupIds[0]);
+
+          const label = document.createElement('div');
+          const groupLabels = setInfo.groupIds.map((gid) => {
+            const g = getGroup(gid);
+            return g ? g.name : `Group ${gid}`;
+          });
+          label.innerHTML = `<strong>${groupLabels.join(' + ')}</strong> — ${setInfo.wells.length} well${setInfo.wells.length === 1 ? '' : 's'}`;
+          item.appendChild(label);
+
+          const fieldWrap = document.createElement('div');
+          fieldWrap.style.marginTop = '6px';
+          const fieldLabel = document.createElement('label');
+          fieldLabel.textContent = 'Sample name for this combination (optional)';
+          fieldLabel.style.display = 'block';
+          fieldLabel.style.fontSize = '0.75rem';
+          fieldLabel.style.color = 'var(--muted)';
+          fieldLabel.htmlFor = `set-name-${setInfo.key.replace(/,/g, '-')}`;
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.id = `set-name-${setInfo.key.replace(/,/g, '-')}`;
+          input.style.width = '100%';
+          input.style.marginTop = '4px';
+          input.value = setNamesByKey[setInfo.key] || '';
+          input.addEventListener('input', () => {
+            setNamesByKey[setInfo.key] = input.value;
+          });
+          fieldWrap.appendChild(fieldLabel);
+          fieldWrap.appendChild(input);
+          item.appendChild(fieldWrap);
+
+          setNamesListEl.appendChild(item);
+        });
+      }
+
+      function readyGroups() {
+        return groups.filter((g) => !g.added && g.sourceWells.length > 0 && g.destWells.length > 0);
+      }
+
+      function updateAddButton() {
+        const ready = readyGroups();
+
+        if (!ready.length) {
+          addBtn.disabled = true;
+          const hasAddedGroups = groups.some((g) => g.added && (g.sourceWells.length || g.destWells.length));
+          addStatus.textContent = hasAddedGroups
+            ? 'All current groups have already been added. Create a new group, or change wells/volume on an existing one, to add more.'
+            : 'Assign source and destination wells to a group, then add it to the list below.';
+          addStatus.classList.remove('error');
+          return;
+        }
+
+        const badVolume = ready.find((g) => !(g.volumeNl > 0) || g.volumeNl > 5000);
+        if (badVolume) {
+          addBtn.disabled = true;
+          addStatus.textContent = `${badVolume.name}: enter a transfer volume greater than 0 and up to 5000 nL.`;
+          addStatus.classList.add('error');
+          return;
+        }
+
+        const overflows = destWellOverflows();
+        if (overflows.length) {
+          addBtn.disabled = true;
+          const preview = overflows
+            .slice(0, 3)
+            .map((o) => `${o.wellId} would hold ${formatVolumeAuto(o.totalNl)} (max ${formatUl(o.maxNl / 1000)} µL)`)
+            .join('; ');
+          const more = overflows.length > 3 ? ` and ${overflows.length - 3} more` : '';
+          addStatus.textContent = `Destination capacity exceeded: ${preview}${more}. Reduce volumes or spread across more wells.`;
+          addStatus.classList.add('error');
+          return;
+        }
+
+        const problems = ready.map((g) => ({ g, req: groupRequirement(g) })).filter(({ req }) => req.shortfall > 0);
+        if (problems.length) {
+          addBtn.disabled = true;
+          addStatus.textContent = problems
+            .map(({ g, req }) => `${g.name} needs at least ${req.recommendedWells} source well${req.recommendedWells === 1 ? '' : 's'} (has ${g.sourceWells.length}); select ${req.shortfall} more.`)
+            .join(' ');
+          addStatus.classList.add('error');
+          return;
+        }
+
+        addBtn.disabled = false;
+        addStatus.textContent = `Ready to add transfers for: ${ready.map((g) => g.name).join(', ')}.`;
+        addStatus.classList.remove('error');
+      }
+
+      function renderAll() {
+        sourcePlates.forEach((plate) => {
+          renderOnePlateWells(plate);
+          renderGroupsPanelForPlate(plate);
+        });
+        renderDestWells();
+        renderDestSummary();
+        renderSetNames();
+        updateAddButton();
+      }
+
+      // ---------- Transfers ----------
+
+      function addTransfers() {
+        const ready = readyGroups();
+        if (!ready.length) return;
+        if (destWellOverflows().length) return;
+        for (const g of ready) {
+          if (!(g.volumeNl > 0) || g.volumeNl > 5000) return;
+          if (groupRequirement(g).shortfall > 0) return;
+        }
+
+        const dPlate = destPlateName.value.trim() || '1';
+        const dBarcode = destPlateBarcodeInput.value.trim();
+        const sourceTypeLabel = PLATE_TYPE_LABELS[Number(sourcePlateType.value)] || '';
+
+        ready.forEach((group) => {
+          const activeSourceWells = effectiveSourceWells(group);
+          const plate = getSourcePlate(group.sourcePlateId);
+          const sourcePlateValue = (plate && plate.plateName.trim()) || '1';
+          const sourceBarcode = (plate && plate.barcode.trim()) || '';
+          group.destWells.forEach((destination, i) => {
+            const source = activeSourceWells[i % activeSourceWells.length];
+            const setKey = destGroupsOf(destination).sort((a, b) => a - b).join(',');
+            const customSetName = (setNamesByKey[setKey] || '').trim();
+            transfers.push({
+              sampleName: customSetName || group.name,
+              source,
+              sourcePlateId: group.sourcePlateId,
+              sourcePlate: sourcePlateValue,
+              sourcePlateBarcode: sourceBarcode,
+              sourcePlateTypeLabel: sourceTypeLabel,
+              destination,
+              destPlate: dPlate,
+              destPlateBarcode: dBarcode,
+              volume: group.volumeNl,
+              sampleComment: group.comment || '',
+              groupId: group.id,
+            });
+          });
+        });
+
+        ready.forEach((group) => {
+          group.added = true;
+        });
+
+        renderAll();
+        renderTransfers();
+      }
+
+      function computeBlockRows(prefix) {
+        const type = PLATE_TYPES[Number((prefix === 'source' ? sourcePlateType : destPlateType).value)];
+        const ids = Array.from(new Set(transfers.map((t) => t.groupId))).sort((a, b) => a - b);
+
+        return ids.map((groupId) => {
+          const groupTransfers = transfers.filter((t) => t.groupId === groupId);
+          const wellsSelected =
+            prefix === 'source'
+              ? new Set(groupTransfers.map((t) => `${t.sourcePlateId}:${t.source}`)).size
+              : new Set(groupTransfers.map((t) => t.destination)).size;
+          const volumeUl = groupTransfers.reduce((sum, t) => sum + t.volume, 0) / 1000;
+          const wellsNeeded = Math.max(1, Math.ceil(volumeUl / type.maxWorking));
+          const deadTotal = wellsNeeded * type.deadVolume;
+          const overageFactor = prefix === 'source' && sourceOverageEnabled ? 1.05 : 1;
+          const totalToPrepare = (volumeUl + deadTotal) * overageFactor;
+          const avgPerWell = volumeUl / wellsNeeded;
+          return { groupId, name: groupNamesById[groupId] || `Group ${groupId}`, wellsSelected, volumeUl, wellsNeeded, deadTotal, totalToPrepare, avgPerWell };
+        });
+      }
+
+      function renderBlockPlanning(prefix) {
+        const table = prefix === 'source' ? sourceBlockTable : destBlockTable;
+        const body = prefix === 'source' ? sourceBlockBody : destBlockBody;
+        const empty = prefix === 'source' ? sourceBlockEmpty : destBlockEmpty;
+        const rows = computeBlockRows(prefix);
+
+        body.innerHTML = '';
+        if (!rows.length) {
+          table.hidden = true;
+          empty.hidden = false;
+          return;
+        }
+        table.hidden = false;
+        empty.hidden = true;
+
+        rows.forEach((row) => {
+          const tr = document.createElement('tr');
+
+          const nameTd = document.createElement('td');
+          const swatch = document.createElement('span');
+          swatch.className = 'block-swatch';
+          swatch.style.backgroundColor = colorFor(row.groupId);
+          nameTd.appendChild(swatch);
+          nameTd.appendChild(document.createTextNode(row.name));
+          tr.appendChild(nameTd);
+
+          const wellsSelectedTd = document.createElement('td');
+          wellsSelectedTd.textContent = `${row.wellsSelected} well${row.wellsSelected === 1 ? '' : 's'}`;
+          tr.appendChild(wellsSelectedTd);
+
+          const volumeTd = document.createElement('td');
+          volumeTd.textContent = `${formatUl(row.volumeUl)} µL`;
+          tr.appendChild(volumeTd);
+
+          if (prefix === 'source') {
+            const wellsNeededTd = document.createElement('td');
+            wellsNeededTd.textContent = `${row.wellsNeeded} well${row.wellsNeeded === 1 ? '' : 's'}`;
+            tr.appendChild(wellsNeededTd);
+          }
+
+          const avgTd = document.createElement('td');
+          avgTd.textContent = `${formatUl(row.avgPerWell)} µL`;
+          tr.appendChild(avgTd);
+
+          if (prefix === 'source') {
+            const deadTd = document.createElement('td');
+            deadTd.textContent = `${formatUl(row.deadTotal)} µL`;
+            tr.appendChild(deadTd);
+
+            const totalTd = document.createElement('td');
+            totalTd.textContent = `${formatUl(row.totalToPrepare)} µL`;
+            tr.appendChild(totalTd);
+          }
+
+          body.appendChild(tr);
+        });
+      }
+
+      function renderTransfers() {
+        transferBody.innerHTML = '';
+        if (!transfers.length) {
+          transferTable.hidden = true;
+          emptyNote.hidden = false;
+          transferSummary.textContent = '';
+          renderBlockPlanning('source');
+          renderBlockPlanning('dest');
+          return;
+        }
+        transferTable.hidden = false;
+        emptyNote.hidden = true;
+
+        transfers.forEach((t, index) => {
+          const tr = document.createElement('tr');
+          const plate = getSourcePlate(t.sourcePlateId);
+          const plateLabel = plate ? plate.label : `Plate ${t.sourcePlateId}`;
+
+          const sourceTd = document.createElement('td');
+          sourceTd.textContent = `${plateLabel} (${t.sourcePlate}) / ${t.source}`;
+          tr.appendChild(sourceTd);
+
+          const destTd = document.createElement('td');
+          destTd.textContent = `${t.destPlate} / ${t.destination}`;
+          tr.appendChild(destTd);
+
+          const volTd = document.createElement('td');
+          volTd.textContent = t.volume;
+          tr.appendChild(volTd);
+
+          const actionTd = document.createElement('td');
+          const removeBtn = document.createElement('button');
+          removeBtn.type = 'button';
+          removeBtn.className = 'remove-btn';
+          removeBtn.textContent = 'Remove';
+          removeBtn.setAttribute('aria-label', `Remove transfer from ${t.source} to ${t.destination}`);
+          removeBtn.addEventListener('click', () => {
+            transfers.splice(index, 1);
+            renderTransfers();
+          });
+          actionTd.appendChild(removeBtn);
+          tr.appendChild(actionTd);
+
+          transferBody.appendChild(tr);
+        });
+
+        const totalVolume = transfers.reduce((sum, t) => sum + t.volume, 0);
+        transferSummary.textContent = `${transfers.length} transfer${transfers.length === 1 ? '' : 's'}, ${totalVolume} nL total`;
+        renderBlockPlanning('source');
+        renderBlockPlanning('dest');
+      }
+
+      function csvEscape(value) {
+        const str = value === undefined || value === null ? '' : String(value);
+        if (/[",\n\r]/.test(str)) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      }
+
+      function selectedCsvColumns() {
+        const checked = new Set(
+          Array.from(document.querySelectorAll('#csv-columns input[type="checkbox"]:checked')).map((cb) => cb.dataset.col)
+        );
+        return CSV_COLUMNS.filter((c) => checked.has(c.key));
+      }
+
+      function downloadCsv() {
+        if (!transfers.length) return;
+        const columns = selectedCsvColumns();
+        if (!columns.length) return;
+        const header = columns.map((c) => `"${c.header}"`).join(',');
+        const plateIds = Array.from(new Set(transfers.map((t) => t.sourcePlateId))).sort((a, b) => a - b);
+        const baseName = filenameInput.value.trim() || 'echo_transfer';
+
+        plateIds.forEach((pid) => {
+          const plate = getSourcePlate(pid);
+          const rows = transfers
+            .filter((t) => t.sourcePlateId === pid)
+            .map((t) => columns.map((c) => csvEscape(c.get(t))).join(','));
+          const csv = [header, ...rows].join('\r\n') + '\r\n';
+          const blob = new Blob([csv], { type: 'text/csv' });
+          const url = URL.createObjectURL(blob);
+          const safeLabel = (plate ? plate.label : `Plate${pid}`).replace(/[^a-z0-9_-]+/gi, '_');
+          const filename = plateIds.length > 1 ? `${baseName}_${safeLabel}.csv` : `${baseName}.csv`;
+
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = filename;
+          a.target = '_blank';
+          a.rel = 'noopener';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 2000);
+        });
+      }
+
+      function clearDestinationSelections() {
+        if (!confirm('Clear all destination well assignments? Source wells and groups stay intact.')) return;
+        groups.forEach((g) => {
+          g.destWells = [];
+        });
+        renderAll();
+      }
+
+      function fullReset() {
+        if (!confirm('Clear all wells, groups, source plates, and the transfer list? This cannot be undone.')) return;
+
+        sourcePlates.forEach((p) => p.blockEl && p.blockEl.remove());
+        sourcePlates = [];
+        sourcePlateIdCounter = 0;
+        groups = [];
+        groupIdCounter = 0;
+        activeGroupId = null;
+        transfers = [];
+        setNamesByKey = {};
+
+        const plate = createSourcePlate();
+        buildSourcePlateBlock(plate);
+        createGroup(plate.id);
+
+        renderAll();
+        renderTransfers();
+      }
+
+      const firstPlate = createSourcePlate();
+      buildSourcePlateBlock(firstPlate);
+      buildPlate(destGrid, 'dest', null);
+      createGroup(firstPlate.id);
+      renderAll();
+      renderTransfers();
+
+      document.getElementById('clear-everything-btn').addEventListener('click', fullReset);
+      document.getElementById('dest-clear').addEventListener('click', clearDestinationSelections);
+      document.getElementById('add-source-plate-btn').addEventListener('click', () => {
+        const plate = createSourcePlate();
+        buildSourcePlateBlock(plate);
+        createGroup(plate.id);
+        renderAll();
+      });
+      addBtn.addEventListener('click', addTransfers);
+      document.getElementById('clear-all-btn').addEventListener('click', () => {
+        if (!transfers.length) return;
+        if (confirm('Clear all transfers from the list?')) {
+          transfers = [];
+          renderTransfers();
+        }
+      });
+      document.getElementById('download-btn').addEventListener('click', downloadCsv);
+      sourcePlateType.addEventListener('change', () => {
+        renderBlockPlanning('source');
+        renderAll();
+      });
+      destPlateType.addEventListener('change', () => {
+        renderBlockPlanning('dest');
+        renderDestWells();
+        renderDestSummary();
+        updateAddButton();
+      });
+      defaultVolumeInput.addEventListener('input', () => {
+        defaultVolumeErrorEl.hidden = !(Number(defaultVolumeInput.value) > 5000);
+      });
+      document.getElementById('source-overage-checkbox').addEventListener('change', (e) => {
+        sourceOverageEnabled = e.target.checked;
+        renderBlockPlanning('source');
+      });
+    </script>
+  </body>
+</html>
