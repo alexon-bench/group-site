@@ -738,10 +738,10 @@
             </select>
           </div>
           <div class="field">
-            <label for="dest-plate-type">Destination plate type</label>
-            <select id="dest-plate-type">
-              <option value="12">Low dead volume (12 µL/well)</option>
-              <option value="25" selected>Regular dead volume (25 µL/well)</option>
+            <label for="dest-plate-select">Destination plate</label>
+            <select id="dest-plate-select">
+              <option value="96">96-well</option>
+              <option value="384" selected>384-well</option>
             </select>
           </div>
           <div class="field">
@@ -917,6 +917,25 @@
         25: { deadVolume: 25, minWorking: 14, maxWorking: 60 },
       };
 
+      // Destination capacity by plate format. maxVolumeUl is the conservative
+      // (lower) end of each format's typical maximum total well volume:
+      // 96-well ≈ 300–400 µL max (50–200 µL typical working); 384-well ≈
+      // 100–120 µL max (10–50 µL typical working).
+      const DEST_PLATE_OPTIONS = {
+        96: { rows: 8, cols: 12, label: '96-well', maxVolumeUl: 300 },
+        384: { rows: 16, cols: 24, label: '384-well', maxVolumeUl: 100 },
+      };
+
+      let destPlateKey = '384';
+
+      function destRowsArr() {
+        return ROWS.slice(0, DEST_PLATE_OPTIONS[destPlateKey].rows);
+      }
+
+      function destColsArr() {
+        return COLS.slice(0, DEST_PLATE_OPTIONS[destPlateKey].cols);
+      }
+
       const PLATE_TYPE_LABELS = {
         12: 'Low Dead Volume',
         25: 'Regular Dead Volume',
@@ -938,7 +957,7 @@
       const destPlateName = document.getElementById('dest-plate-name');
       const destPlateBarcodeInput = document.getElementById('dest-plate-barcode');
       const sourcePlateType = document.getElementById('source-plate-type');
-      const destPlateType = document.getElementById('dest-plate-type');
+      const destPlateSelect = document.getElementById('dest-plate-select');
       const defaultVolumeInput = document.getElementById('default-volume');
       const defaultVolumeErrorEl = document.getElementById('default-volume-error');
       const sourcePlatesListEl = document.getElementById('source-plates-list');
@@ -1112,7 +1131,7 @@
         gridEl.className = 'plate-grid';
         gridEl.setAttribute('role', 'group');
         gridEl.setAttribute('aria-label', `${plate.label} wells`);
-        buildPlate(gridEl, 'source', plate.id);
+        buildPlate(gridEl, 'source', plate.id, ROWS, COLS);
         wrap.appendChild(gridEl);
         plate.gridEl = gridEl;
 
@@ -1253,37 +1272,39 @@
         }
       });
 
-      function buildPlate(container, prefix, plateId) {
+      function buildPlate(container, prefix, plateId, rowsArr, colsArr) {
+        container.style.gridTemplateColumns = `24px repeat(${colsArr.length}, 22px)`;
+
         const corner = document.createElement('span');
         corner.className = 'grid-label corner';
         container.appendChild(corner);
 
-        COLS.forEach((col) => {
+        colsArr.forEach((col) => {
           const btn = document.createElement('button');
           btn.type = 'button';
           btn.className = 'grid-label';
           btn.textContent = col;
           btn.setAttribute('aria-label', `Select column ${col}`);
           btn.addEventListener('click', () => {
-            const ids = ROWS.map((row) => `${row}${col}`);
+            const ids = rowsArr.map((row) => `${row}${col}`);
             toggleLine(prefix, plateId, ids);
           });
           container.appendChild(btn);
         });
 
-        ROWS.forEach((row) => {
+        rowsArr.forEach((row) => {
           const rowBtn = document.createElement('button');
           rowBtn.type = 'button';
           rowBtn.className = 'grid-label';
           rowBtn.textContent = row;
           rowBtn.setAttribute('aria-label', `Select row ${row}`);
           rowBtn.addEventListener('click', () => {
-            const ids = COLS.map((col) => `${row}${col}`);
+            const ids = colsArr.map((col) => `${row}${col}`);
             toggleLine(prefix, plateId, ids);
           });
           container.appendChild(rowBtn);
 
-          COLS.forEach((col) => {
+          colsArr.forEach((col) => {
             const wellId = `${row}${col}`;
             const well = document.createElement('button');
             well.type = 'button';
@@ -1727,8 +1748,7 @@
       }
 
       function destWellOverflows() {
-        const type = PLATE_TYPES[Number(destPlateType.value)];
-        const maxNl = type.maxWorking * 1000;
+        const maxNl = DEST_PLATE_OPTIONS[destPlateKey].maxVolumeUl * 1000;
         const wellIds = new Set();
         transfers.forEach((t) => wellIds.add(t.destination));
         groups.forEach((g) => g.destWells.forEach((w) => wellIds.add(w)));
@@ -1916,7 +1936,9 @@
       }
 
       function computeBlockRows(prefix) {
-        const type = PLATE_TYPES[Number((prefix === 'source' ? sourcePlateType : destPlateType).value)];
+        const maxWorking =
+          prefix === 'source' ? PLATE_TYPES[Number(sourcePlateType.value)].maxWorking : DEST_PLATE_OPTIONS[destPlateKey].maxVolumeUl;
+        const deadVolume = prefix === 'source' ? PLATE_TYPES[Number(sourcePlateType.value)].deadVolume : 0;
         const ids = Array.from(new Set(transfers.map((t) => t.groupId))).sort((a, b) => a - b);
 
         return ids.map((groupId) => {
@@ -1926,8 +1948,8 @@
               ? new Set(groupTransfers.map((t) => `${t.sourcePlateId}:${t.source}`)).size
               : new Set(groupTransfers.map((t) => t.destination)).size;
           const volumeUl = groupTransfers.reduce((sum, t) => sum + t.volume, 0) / 1000;
-          const wellsNeeded = Math.max(1, Math.ceil(volumeUl / type.maxWorking));
-          const deadTotal = wellsNeeded * type.deadVolume;
+          const wellsNeeded = Math.max(1, Math.ceil(volumeUl / maxWorking));
+          const deadTotal = wellsNeeded * deadVolume;
           const overageFactor = prefix === 'source' && sourceOverageEnabled ? 1.05 : 1;
           const totalToPrepare = (volumeUl + deadTotal) * overageFactor;
           const avgPerWell = volumeUl / wellsNeeded;
@@ -2121,7 +2143,7 @@
 
       const firstPlate = createSourcePlate();
       buildSourcePlateBlock(firstPlate);
-      buildPlate(destGrid, 'dest', null);
+      buildPlate(destGrid, 'dest', null, destRowsArr(), destColsArr());
       createGroup(firstPlate.id);
       renderAll();
       renderTransfers();
@@ -2147,12 +2169,27 @@
         renderBlockPlanning('source');
         renderAll();
       });
-      destPlateType.addEventListener('change', () => {
-        renderBlockPlanning('dest');
-        renderDestWells();
-        renderDestSummary();
-        updateAddButton();
-      });
+      function rebuildDestGrid() {
+        const hasLiveDestWells = groups.some((g) => g.destWells.length > 0);
+        if (
+          hasLiveDestWells &&
+          !confirm('Changing the destination plate clears current destination well assignments (already-added transfers are not affected). Continue?')
+        ) {
+          destPlateSelect.value = destPlateKey;
+          return;
+        }
+        destPlateKey = destPlateSelect.value;
+        groups.forEach((g) => {
+          g.destWells = [];
+          g.added = false;
+        });
+        setNamesByKey = {};
+        destGrid.innerHTML = '';
+        buildPlate(destGrid, 'dest', null, destRowsArr(), destColsArr());
+        renderAll();
+        renderTransfers();
+      }
+      destPlateSelect.addEventListener('change', rebuildDestGrid);
       defaultVolumeInput.addEventListener('input', () => {
         defaultVolumeErrorEl.hidden = !(Number(defaultVolumeInput.value) > 5000);
       });
