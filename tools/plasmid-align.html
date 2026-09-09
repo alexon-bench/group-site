@@ -1,0 +1,3509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Check a sequencing result against its plasmid design and review mismatches, indels, and orientation, entirely in your browser.">
+<title>Plasmid Align — Sequence Verification</title>
+<style>
+:root{
+  --deep-blue:#132A44;
+  --deep-blue-2:#1E4870;
+  --deep-blue-3:#2E6299;
+  --uw-purple:#4B2E83;
+  --uw-purple-hover:#3A2367;
+  --white:#FFFFFF;
+  --bg:#F6F8FA;
+  --bg-panel:#FFFFFF;
+  --border:#DCE3EA;
+  --border-strong:#B9C4CE;
+  --text-primary:#16232F;
+  --text-secondary:#5B6B7A;
+  --text-faint:#8A97A3;
+  --pass:#00794D;
+  --pass-bg:#E6F4EE;
+  --attention:#B5480A;
+  --attention-bg:#FCEEE5;
+  --nomatch:#5B6470;
+  --nomatch-bg:#EEF0F2;
+  --viz-mismatch:#B5480A;
+  --viz-insertion:#0B6FA8;
+  --viz-deletion:#8A3A78;
+  --viz-ambiguous:#9A7B00;
+  --focus-ring:#2E6299;
+  --shadow-sm:0 1px 2px rgba(19,42,68,0.06),0 1px 3px rgba(19,42,68,0.08);
+  --shadow-md:0 4px 12px rgba(19,42,68,0.10);
+  --shadow-lg:0 12px 32px rgba(19,42,68,0.16);
+  --radius:10px;
+  --radius-sm:6px;
+  font-size:16px;
+}
+
+/* MTECH TOP BAR STYLES START: copy this block unchanged into every tool */
+.site-header {
+  width: 100%;
+  border-bottom: 1px solid #dadcd7;
+  background: rgba(245, 245, 241, 0.94);
+}
+
+.header-inner {
+  display: flex;
+  width: min(1120px, calc(100% - 48px));
+  min-height: 76px;
+  margin-inline: auto;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #141615;
+  font-size: 1.02rem;
+  font-weight: 760;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+}
+
+.brand-mark {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 7px;
+  background: #141615;
+  color: white;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  color: #626763;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.site-nav a {
+  color: inherit;
+  font-weight: inherit;
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+
+.site-nav a:hover,
+.site-nav a:focus-visible { color: #315cf5; }
+
+@media (max-width: 560px) {
+  .header-inner { width: min(100% - 28px, 1120px); min-height: 68px; }
+  .site-nav { gap: 16px; }
+  .site-nav a:nth-child(2) { display: none; }
+}
+/* MTECH TOP BAR STYLES END */
+
+*,*::before,*::after{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  color:var(--text-primary);
+  background:var(--bg);
+  -webkit-font-smoothing:antialiased;
+}
+button{font-family:inherit;}
+a{color:var(--deep-blue-3);}
+::selection{background:#cfe0ee;}
+
+#app{min-height:100vh;display:flex;flex-direction:column;}
+
+/* Header */
+#app-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 28px;background:var(--deep-blue);color:#fff;
+  box-shadow:var(--shadow-sm);position:relative;z-index:20;
+}
+.pa-brand{display:flex;align-items:center;gap:12px;}
+.pa-brand-mark{
+  width:30px;height:30px;border-radius:7px;
+  background:linear-gradient(135deg,var(--deep-blue-3),var(--uw-purple));
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;color:#fff;
+  flex:none;
+}
+.pa-brand-text{display:flex;flex-direction:column;line-height:1.15;}
+.pa-brand-text b{font-size:15.5px;font-weight:650;letter-spacing:0.2px;}
+.pa-brand-text span{font-size:11.5px;color:#B9C9DA;letter-spacing:0.3px;}
+.header-nav{display:flex;gap:6px;align-items:center;}
+.header-tab{
+  padding:7px 14px;border-radius:7px;font-size:13.5px;color:#C7D5E4;background:transparent;border:none;
+  cursor:pointer;font-weight:500;transition:background .15s,color .15s;
+}
+.header-tab:hover{background:rgba(255,255,255,0.08);color:#fff;}
+.header-tab.active{background:rgba(255,255,255,0.14);color:#fff;}
+.header-meta{font-size:12.5px;color:#9FB2C6;}
+
+/* Layout */
+#app-main{flex:1;display:flex;flex-direction:column;min-height:0;position:relative;}
+.view{display:none;flex:1;min-height:0;}
+.view.active{display:flex;flex-direction:column;}
+
+/* ---------------- Import view ---------------- */
+#view-import{overflow-y:auto;}
+.import-shell{max-width:1180px;margin:0 auto;padding:36px 28px 80px;width:100%;}
+.import-intro{margin-bottom:28px;}
+.import-intro h1{font-size:24px;font-weight:650;margin:0 0 6px;color:var(--deep-blue);}
+.import-intro p{margin:0;color:var(--text-secondary);font-size:14.5px;max-width:640px;line-height:1.55;}
+
+.dropzone-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:28px;}
+@media (max-width:860px){.dropzone-grid{grid-template-columns:1fr;}}
+
+.dropzone{
+  border:2px dashed var(--border-strong);border-radius:var(--radius);
+  background:var(--bg-panel);padding:22px;transition:border-color .15s,background .15s;
+  display:flex;flex-direction:column;gap:10px;position:relative;
+}
+.dropzone.dragover{border-color:var(--deep-blue-3);background:#EEF4FA;}
+.dropzone-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+.dropzone-title{font-size:15px;font-weight:650;color:var(--text-primary);display:flex;align-items:center;gap:8px;}
+.dropzone-title .tag{
+  font-size:10.5px;font-weight:700;letter-spacing:0.4px;text-transform:uppercase;
+  padding:2px 7px;border-radius:100px;
+}
+.tag-query{background:#E6F0F8;color:var(--deep-blue-3);}
+.tag-reference{background:#EFE8F5;color:var(--uw-purple);}
+.dropzone-help{font-size:12.5px;color:var(--text-secondary);line-height:1.5;margin:0;}
+.dropzone-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px;}
+.dz-inner{
+  border-radius:var(--radius-sm);padding:26px 14px;text-align:center;
+  color:var(--text-faint);font-size:13px;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+  min-height:104px;
+}
+.dz-inner svg{opacity:0.55;}
+
+.btn{
+  border:1px solid var(--border-strong);background:#fff;color:var(--text-primary);
+  padding:7px 13px;border-radius:7px;font-size:13px;font-weight:550;cursor:pointer;
+  transition:background .12s,border-color .12s,box-shadow .12s,transform .05s;
+  display:inline-flex;align-items:center;gap:6px;white-space:nowrap;
+}
+.btn:hover{background:#F2F5F8;border-color:var(--border-strong);}
+.btn:active{transform:translateY(1px);}
+.btn:focus-visible{outline:2px solid var(--focus-ring);outline-offset:1px;}
+.btn-primary{background:var(--uw-purple);border-color:var(--uw-purple);color:#fff;}
+.btn-primary:hover{background:var(--uw-purple-hover);border-color:var(--uw-purple-hover);}
+.btn-primary:disabled{background:#C9BEDB;border-color:#C9BEDB;cursor:not-allowed;}
+.btn-subtle{background:transparent;border-color:transparent;color:var(--deep-blue-3);}
+.btn-subtle:hover{background:#EEF4FA;}
+.btn-sm{padding:5px 10px;font-size:12px;}
+.btn-danger-text{color:var(--attention);}
+input[type=file]{display:none;}
+
+.paste-area{display:none;margin-top:4px;}
+.paste-area.open{display:block;}
+.paste-area textarea{
+  width:100%;min-height:110px;border:1px solid var(--border);border-radius:7px;padding:10px;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12.5px;resize:vertical;
+}
+.paste-area .paste-controls{display:flex;justify-content:flex-end;gap:8px;margin-top:8px;}
+
+.record-list{margin-top:4px;display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;padding-right:2px;}
+.record-row{
+  display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--border);border-radius:7px;background:#FCFDFE;
+  font-size:12.8px;
+}
+.record-row.excluded{opacity:0.45;}
+.record-row input[type=checkbox]{flex:none;width:15px;height:15px;accent-color:var(--deep-blue-3);}
+.record-row .r-id{font-weight:600;flex:none;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.record-row .r-desc{color:var(--text-secondary);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.record-row .r-len{color:var(--text-faint);flex:none;font-variant-numeric:tabular-nums;}
+.record-row .r-warn{color:var(--attention);flex:none;font-weight:600;font-size:11.5px;}
+.topo-toggle{display:flex;border:1px solid var(--border-strong);border-radius:100px;overflow:hidden;flex:none;}
+.topo-toggle button{
+  border:none;background:#fff;padding:4px 10px;font-size:11.5px;font-weight:600;cursor:pointer;color:var(--text-secondary);
+}
+.topo-toggle button.active{background:var(--deep-blue);color:#fff;}
+
+.panel{background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);padding:20px 22px;margin-bottom:20px;}
+.panel h2{font-size:15px;margin:0 0 4px;font-weight:650;}
+.panel .panel-help{font-size:12.5px;color:var(--text-secondary);margin:0 0 14px;}
+
+.match-table{width:100%;border-collapse:collapse;font-size:13px;}
+.match-table th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.3px;color:var(--text-faint);padding:6px 10px;border-bottom:1px solid var(--border);}
+.match-table td{padding:9px 10px;border-bottom:1px solid #EEF1F4;vertical-align:middle;}
+.confidence-bar{width:70px;height:6px;border-radius:100px;background:#E7ECF0;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:6px;}
+.confidence-bar > span{display:block;height:100%;border-radius:100px;}
+.match-table select{border:1px solid var(--border-strong);border-radius:6px;padding:4px 6px;font-size:12.5px;background:#fff;}
+
+.empty-state{
+  border:1.5px dashed var(--border);border-radius:var(--radius);padding:40px 30px;text-align:center;color:var(--text-secondary);
+}
+.empty-state svg{opacity:0.4;margin-bottom:10px;}
+.empty-state h3{font-size:14.5px;margin:0 0 6px;color:var(--text-primary);}
+.empty-state p{margin:0;font-size:13px;line-height:1.5;max-width:420px;margin:0 auto;}
+
+.import-footer-bar{
+  position:sticky;bottom:0;background:linear-gradient(to top,rgba(246,248,250,1) 60%,rgba(246,248,250,0));
+  padding:20px 0 4px;display:flex;justify-content:flex-end;gap:10px;
+}
+
+/* ---------------- Review view ---------------- */
+#view-review{flex-direction:row;}
+.sample-sidebar{
+  width:250px;flex:none;border-right:1px solid var(--border);background:var(--bg-panel);
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.sample-sidebar-head{padding:14px 16px 8px;display:flex;align-items:center;justify-content:space-between;}
+.sample-sidebar-head h3{font-size:12.5px;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-faint);margin:0;font-weight:650;}
+.sample-list{flex:1;overflow-y:auto;padding:4px 8px 12px;}
+.sample-item{
+  display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:7px;cursor:pointer;margin-bottom:2px;
+  font-size:13px;border:1px solid transparent;
+}
+.sample-item:hover{background:#F2F5F8;}
+.sample-item.active{background:#EAF1F8;border-color:#CBDCEA;}
+.sample-item .s-icon{flex:none;}
+.sample-item .s-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:550;}
+.sample-item .s-pct{flex:none;font-size:11.5px;color:var(--text-faint);font-variant-numeric:tabular-nums;}
+.sample-sidebar-foot{padding:10px 16px;border-top:1px solid var(--border);display:flex;gap:8px;}
+
+.review-main{flex:1;min-width:0;display:flex;flex-direction:column;overflow-y:auto;}
+.review-toolbar{
+  display:flex;align-items:center;justify-content:space-between;padding:12px 22px;border-bottom:1px solid var(--border);
+  background:var(--bg-panel);position:sticky;top:0;z-index:5;gap:14px;flex-wrap:wrap;
+}
+.review-toolbar .rt-left{display:flex;align-items:center;gap:12px;min-width:0;}
+.review-toolbar h2{font-size:16px;margin:0;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:340px;}
+.review-toolbar .rt-actions{display:flex;gap:8px;flex-wrap:wrap;}
+
+.review-body{padding:22px;display:flex;flex-direction:column;gap:20px;max-width:1320px;width:100%;margin:0 auto;}
+
+.status-banner{
+  display:flex;align-items:center;gap:16px;padding:18px 22px;border-radius:var(--radius);
+}
+.status-banner.pass{background:var(--pass-bg);}
+.status-banner.attention{background:var(--attention-bg);}
+.status-banner.nomatch{background:var(--nomatch-bg);}
+.status-banner .icon{flex:none;width:46px;height:46px;}
+.status-banner .status-text b{font-size:17px;display:block;}
+.status-banner.pass .status-text b{color:var(--pass);}
+.status-banner.attention .status-text b{color:var(--attention);}
+.status-banner.nomatch .status-text b{color:var(--nomatch);}
+.status-banner .status-text span{font-size:13px;color:var(--text-secondary);}
+
+.stat-row{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;}
+@media (max-width:1000px){.stat-row{grid-template-columns:repeat(3,1fr);}}
+.stat-card{background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;}
+.stat-card .stat-label{font-size:10.5px;text-transform:uppercase;letter-spacing:0.4px;color:var(--text-faint);font-weight:650;margin-bottom:4px;}
+.stat-card .stat-value{font-size:19px;font-weight:650;color:var(--text-primary);font-variant-numeric:tabular-nums;}
+.stat-card .stat-sub{font-size:11.5px;color:var(--text-secondary);margin-top:1px;}
+
+.viz-panel{background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px 18px;}
+.viz-panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px;}
+.viz-panel-head h3{font-size:13.5px;margin:0;font-weight:650;}
+.viz-controls{display:flex;align-items:center;gap:6px;}
+.viz-controls button{width:26px;height:26px;border-radius:6px;border:1px solid var(--border-strong);background:#fff;cursor:pointer;font-size:14px;line-height:1;}
+.viz-controls button:hover{background:#F2F5F8;}
+.viz-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--text-secondary);margin-top:8px;}
+.viz-legend span{display:inline-flex;align-items:center;gap:5px;}
+.legend-swatch{width:11px;height:11px;border-radius:3px;display:inline-block;}
+
+#minimap-canvas{width:100%;height:34px;display:block;border-radius:5px;cursor:pointer;}
+#track-canvas-wrap{overflow-x:auto;overflow-y:hidden;border:1px solid var(--border);border-radius:6px;margin-top:10px;background:#fff;cursor:grab;position:relative;}
+#track-canvas-wrap.grabbing{cursor:grabbing;}
+/* The canvas is a viewport-sized "window" that stays pinned to the visible area while a
+   zero-height spacer (sized to the full alignment width) gives the wrapper a real
+   scrollbar. This keeps the actual canvas pixel buffer small regardless of zoom level or
+   sequence length — a canvas sized to the full alignment at high zoom can exceed the
+   browser's max canvas dimension (~16k-32k px) and silently fail to render. */
+#track-spacer{height:1px;}
+#track-canvas,#feature-canvas{display:block;position:sticky;left:0;top:0;}
+#hover-tooltip{
+  position:fixed;background:var(--deep-blue);color:#fff;font-size:12px;padding:6px 9px;border-radius:6px;
+  pointer-events:none;z-index:100;box-shadow:var(--shadow-md);max-width:260px;line-height:1.4;display:none;
+}
+
+.variant-table-wrap{overflow-x:auto;}
+table.variant-table{width:100%;border-collapse:collapse;font-size:12.8px;}
+table.variant-table th{
+  text-align:left;padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text-faint);
+  font-size:10.8px;text-transform:uppercase;letter-spacing:0.3px;cursor:pointer;user-select:none;white-space:nowrap;
+}
+table.variant-table th:hover{color:var(--text-primary);}
+table.variant-table td{padding:7px 10px;border-bottom:1px solid #EEF1F4;font-variant-numeric:tabular-nums;white-space:nowrap;}
+table.variant-table tr:hover td{background:#F8FAFC;}
+.chip{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:100px;font-size:11px;font-weight:650;}
+.chip-sub{background:#FCEEE5;color:var(--viz-mismatch);}
+.chip-ins{background:#E5F1F9;color:var(--viz-insertion);}
+.chip-del{background:#F3E7EF;color:var(--viz-deletion);}
+.chip-amb{background:#FBF1D8;color:var(--viz-ambiguous);}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;}
+.feature-pill{background:#EEF2F5;color:var(--text-secondary);padding:1px 7px;border-radius:100px;font-size:11px;}
+
+details.detail-drawer{background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;}
+details.detail-drawer summary{padding:14px 18px;cursor:pointer;font-size:13.5px;font-weight:600;list-style:none;display:flex;align-items:center;gap:8px;}
+details.detail-drawer summary::-webkit-details-marker{display:none;}
+details.detail-drawer summary:before{content:'▸';font-size:11px;color:var(--text-faint);transition:transform .12s;}
+details.detail-drawer[open] summary:before{transform:rotate(90deg);}
+.detail-drawer .drawer-body{padding:0 18px 18px;font-size:12.5px;color:var(--text-secondary);}
+.drawer-body pre{
+  background:#0F1E2E;color:#D7E4EE;padding:12px 14px;border-radius:7px;overflow-x:auto;font-size:11.5px;line-height:1.6;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+.param-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin:10px 0;}
+.param-grid div{background:#F7F9FB;border-radius:6px;padding:8px 10px;}
+.param-grid .k{font-size:10.5px;text-transform:uppercase;color:var(--text-faint);font-weight:650;}
+.param-grid .v{font-size:13px;font-weight:600;margin-top:2px;}
+
+/* Export menu */
+.export-menu{position:relative;}
+.export-dropdown{
+  position:absolute;right:0;top:calc(100% + 6px);background:#fff;border:1px solid var(--border);border-radius:9px;
+  box-shadow:var(--shadow-lg);min-width:230px;padding:6px;display:none;z-index:50;
+}
+.export-dropdown.open{display:block;}
+.export-dropdown button{
+  display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 10px;border:none;background:none;
+  border-radius:6px;cursor:pointer;font-size:13px;color:var(--text-primary);
+}
+.export-dropdown button:hover{background:#F2F5F8;}
+.export-dropdown .divider{height:1px;background:var(--border);margin:5px 2px;}
+
+/* Toast */
+#toast-stack{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:200;display:flex;flex-direction:column;gap:8px;align-items:center;}
+.toast{
+  background:var(--deep-blue);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;box-shadow:var(--shadow-lg);
+  animation:toast-in .18s ease-out;
+}
+.toast.err{background:var(--attention);}
+@keyframes toast-in{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+
+/* transitions between views */
+.view{opacity:1;}
+.fade-enter{animation:fade-in .22s ease-out;}
+@keyframes fade-in{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+/* Alignment progress overlay */
+#align-progress-overlay{
+  position:fixed;inset:0;background:rgba(19,42,68,0.55);display:none;align-items:center;justify-content:center;z-index:300;
+}
+#align-progress-overlay.open{display:flex;}
+.progress-card{background:#fff;border-radius:var(--radius);padding:26px 30px;width:340px;box-shadow:var(--shadow-lg);text-align:center;}
+.progress-card h3{margin:0 0 6px;font-size:15px;}
+.progress-card p{margin:0 0 14px;font-size:12.5px;color:var(--text-secondary);}
+.progress-track{height:8px;background:#E7ECF0;border-radius:100px;overflow:hidden;}
+.progress-fill{height:100%;background:var(--deep-blue-3);border-radius:100px;transition:width .15s;}
+.spinner{
+  width:34px;height:34px;border-radius:50%;border:3px solid #E1E7EC;border-top-color:var(--deep-blue-3);
+  animation:spin 0.7s linear infinite;margin:0 auto 12px;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.kbd{
+  display:inline-block;border:1px solid var(--border-strong);border-bottom-width:2px;border-radius:4px;
+  padding:0 5px;font-size:11px;font-family:ui-monospace,monospace;background:#fff;color:var(--text-secondary);
+}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+
+/* Session controls in header */
+.session-controls{display:flex;gap:8px;align-items:center;}
+.header-icon-btn{
+  background:transparent;border:1px solid rgba(255,255,255,0.25);color:#E4EBF2;padding:6px 11px;border-radius:7px;
+  font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:6px;
+}
+.header-icon-btn:hover{background:rgba(255,255,255,0.1);}
+</style>
+</head>
+<body>
+<!-- MTECH TOP BAR START: copy this block unchanged into every tool -->
+<header class="site-header" data-mtech-nav="v1">
+  <div class="header-inner">
+    <a class="brand" href="../index.html" aria-label="MTech home">
+      <span class="brand-mark" aria-hidden="true">M</span>
+      <span>MTech</span>
+    </a>
+    <nav class="site-nav" aria-label="Main navigation">
+      <a href="../index.html#tools">Tools</a>
+      <a href="../index.html#contribute">Contribute</a>
+      <a href="https://github.com/alexon-bench/group-site" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+    </nav>
+  </div>
+</header>
+<!-- MTECH TOP BAR END -->
+<div id="app">
+  <header id="app-header">
+    <div class="pa-brand">
+      <div class="pa-brand-mark">PA</div>
+      <div class="pa-brand-text">
+        <b>Plasmid Align</b>
+        <span>Sequence verification</span>
+      </div>
+    </div>
+    <nav class="header-nav" id="header-nav">
+      <button class="header-tab active" data-view="import" id="nav-import">Import &amp; Match</button>
+      <button class="header-tab" data-view="review" id="nav-review" disabled>Review Results</button>
+    </nav>
+    <div class="session-controls">
+      <span class="header-meta" id="header-status-meta"></span>
+      <button class="header-icon-btn" id="btn-save-session" title="Save session as JSON">Save session</button>
+      <button class="header-icon-btn" id="btn-load-session" title="Re-import a saved session">Load session</button>
+      <input type="file" id="file-input-session" accept=".json">
+    </div>
+  </header>
+
+  <main id="app-main">
+    <!-- ============ IMPORT VIEW ============ -->
+    <section id="view-import" class="view active">
+      <div class="import-shell">
+        <div class="import-intro">
+          <h1>Check a sequencing result against its design</h1>
+          <p>Drop in your Plasmidsaurus (or other) sequencing result and the plasmid design it should match. Multiple files and multi-record FASTA/GenBank are welcome — you'll get a chance to confirm every pairing before anything is aligned.</p>
+        </div>
+
+        <div class="dropzone-grid">
+          <div class="dropzone" id="dz-query" data-zone="query">
+            <div class="dropzone-head">
+              <div class="dropzone-title"><span class="tag tag-query">Query</span>Sequencing result</div>
+            </div>
+            <p class="dropzone-help">The consensus sequence(s) that came back from sequencing (e.g. a Plasmidsaurus FASTA). This is what gets checked.</p>
+            <div class="dz-inner" id="dz-query-inner">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+              <div>Drop FASTA / GenBank file(s) here, or</div>
+            </div>
+            <div class="dropzone-actions">
+              <button class="btn" data-action="pick-file" data-zone="query">Choose file(s)</button>
+              <button class="btn btn-subtle" data-action="toggle-paste" data-zone="query">Paste sequence instead</button>
+            </div>
+            <input type="file" data-zone="query" multiple accept=".fasta,.fa,.fna,.txt,.gb,.gbk,.genbank">
+            <div class="paste-area" data-zone="query">
+              <textarea placeholder="Paste FASTA or GenBank text here…" data-zone="query"></textarea>
+              <div class="paste-controls">
+                <button class="btn btn-sm" data-action="cancel-paste" data-zone="query">Cancel</button>
+                <button class="btn btn-sm btn-primary" data-action="submit-paste" data-zone="query">Add sequence</button>
+              </div>
+            </div>
+            <div class="record-list" data-zone="query"></div>
+          </div>
+
+          <div class="dropzone" id="dz-reference" data-zone="reference">
+            <div class="dropzone-head">
+              <div class="dropzone-title"><span class="tag tag-reference">Reference</span>Intended design</div>
+            </div>
+            <p class="dropzone-help">The design the plasmid was supposed to end up as (e.g. a Benchling/SnapGene/ApE export). GenBank keeps feature annotations for the review view.</p>
+            <div class="dz-inner" id="dz-reference-inner">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+              <div>Drop FASTA / GenBank file(s) here, or</div>
+            </div>
+            <div class="dropzone-actions">
+              <button class="btn" data-action="pick-file" data-zone="reference">Choose file(s)</button>
+              <button class="btn btn-subtle" data-action="toggle-paste" data-zone="reference">Paste sequence instead</button>
+            </div>
+            <input type="file" data-zone="reference" multiple accept=".fasta,.fa,.fna,.txt,.gb,.gbk,.genbank">
+            <div class="paste-area" data-zone="reference">
+              <textarea placeholder="Paste FASTA or GenBank text here…" data-zone="reference"></textarea>
+              <div class="paste-controls">
+                <button class="btn btn-sm" data-action="cancel-paste" data-zone="reference">Cancel</button>
+                <button class="btn btn-sm btn-primary" data-action="submit-paste" data-zone="reference">Add sequence</button>
+              </div>
+            </div>
+            <div class="record-list" data-zone="reference"></div>
+          </div>
+        </div>
+
+        <div class="panel" id="panel-matching" style="display:none;">
+          <h2>Confirm matches</h2>
+          <p class="panel-help">Suggested pairings are based on a fast approximate similarity scan (k-mer sketch, both strands). Nothing is final until you confirm — change any pairing with the dropdown.</p>
+          <table class="match-table" id="match-table">
+            <thead><tr><th>Query</th><th>Reference</th><th>Confidence</th><th>Basis</th><th></th></tr></thead>
+            <tbody id="match-table-body"></tbody>
+          </table>
+        </div>
+
+        <div id="import-empty-state" class="empty-state">
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg>
+          <h3>Nothing imported yet</h3>
+          <p>Drop a sequencing result into the left zone and its intended design into the right zone. As soon as both sides have at least one sequence, you'll be able to confirm the pairing and align.</p>
+        </div>
+
+        <div class="import-footer-bar">
+          <button class="btn" id="btn-clear-import" style="display:none;">Clear all</button>
+          <button class="btn btn-primary" id="btn-align-all" disabled>Align all pairs</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ REVIEW VIEW ============ -->
+    <section id="view-review" class="view">
+      <aside class="sample-sidebar">
+        <div class="sample-sidebar-head">
+          <h3 id="sample-count-label">Samples</h3>
+          <span class="header-meta" style="color:var(--text-faint);" id="sample-shortcut-hint" title="j/k or ↑/↓ to move, e to export, Esc to go back">?</span>
+        </div>
+        <div class="sample-list" id="sample-list"></div>
+        <div class="sample-sidebar-foot">
+          <button class="btn btn-sm" id="btn-back-to-import" style="flex:1;">← Import &amp; Match</button>
+        </div>
+      </aside>
+
+      <div class="review-main" id="review-main">
+        <div class="review-toolbar">
+          <div class="rt-left">
+            <h2 id="rt-title">—</h2>
+          </div>
+          <div class="rt-actions">
+            <button class="btn btn-sm" id="btn-prev-sample">↑ Prev</button>
+            <button class="btn btn-sm" id="btn-next-sample">Next ↓</button>
+            <div class="export-menu">
+              <button class="btn btn-sm btn-primary" id="btn-export-menu">Export ▾</button>
+              <div class="export-dropdown" id="export-dropdown">
+                <button data-export="png">Alignment image (PNG)</button>
+                <button data-export="csv">Variant table (CSV)</button>
+                <button data-export="fasta">Corrected FASTA</button>
+                <button data-export="report">Shareable report (HTML)</button>
+                <div class="divider"></div>
+                <button data-export="batch-summary">Batch summary (all samples)</button>
+                <button data-export="session">Full session (JSON)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="review-body" id="review-body">
+          <!-- populated by app.js -->
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="hover-tooltip"></div>
+<div id="toast-stack"></div>
+
+<div id="align-progress-overlay">
+  <div class="progress-card">
+    <div class="spinner"></div>
+    <h3 id="progress-title">Aligning…</h3>
+    <p id="progress-sub">Preparing sequences</p>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill" style="width:0%;"></div></div>
+  </div>
+</div>
+
+<input type="file" id="file-input-fasta-hidden" style="display:none;">
+
+<script type="text/plain" id="worker-source">
+// core.js — Plasmid alignment engine (pure JS, no DOM). Shared by the Web Worker and
+// by this Node test harness. Exposed as global `AlignCore` in a browser/worker, and
+// via module.exports under Node.
+(function (root) {
+  'use strict';
+
+  // ---------------------------------------------------------------------
+  // IUPAC nucleotide handling
+  // ---------------------------------------------------------------------
+  var IUPAC_SETS = {
+    A: 'A', C: 'C', G: 'G', T: 'T', U: 'T',
+    R: 'AG', Y: 'CT', S: 'GC', W: 'AT', K: 'GT', M: 'AC',
+    B: 'CGT', D: 'AGT', H: 'ACT', V: 'ACG',
+    N: 'ACGT'
+  };
+  var VALID_IUPAC = new Set(Object.keys(IUPAC_SETS).concat(['-']));
+  var COMPLEMENT = {
+    A: 'T', C: 'G', G: 'C', T: 'A', U: 'A',
+    R: 'Y', Y: 'R', S: 'S', W: 'W', K: 'M', M: 'K',
+    B: 'V', V: 'B', D: 'H', H: 'D', N: 'N'
+  };
+
+  function reverseComplement(seq) {
+    var out = new Array(seq.length);
+    for (var i = 0; i < seq.length; i++) {
+      var c = seq[seq.length - 1 - i].toUpperCase();
+      out[i] = COMPLEMENT[c] || 'N';
+    }
+    return out.join('');
+  }
+
+  // Classify a column of the alignment: 'match' | 'ambiguous' | 'mismatch'
+  function classifyBases(a, b) {
+    a = a.toUpperCase(); b = b.toUpperCase();
+    var sa = IUPAC_SETS[a] || 'ACGT';
+    var sb = IUPAC_SETS[b] || 'ACGT';
+    if (sa.length === 1 && sb.length === 1) return sa === sb ? 'match' : 'mismatch';
+    for (var i = 0; i < sa.length; i++) if (sb.indexOf(sa[i]) !== -1) return 'ambiguous';
+    return 'mismatch';
+  }
+
+  // Score used by the DP (not the same as reporting classification, but consistent)
+  function scoreBases(a, b, sc) {
+    var cls = classifyBases(a, b);
+    if (cls === 'match') return sc.match;
+    if (cls === 'ambiguous') return sc.ambiguous;
+    return sc.mismatch;
+  }
+
+  function validateSequence(raw) {
+    // Strip whitespace/line numbers/CRLF, uppercase, collect invalid chars.
+    var cleaned = [];
+    var invalid = new Map(); // char -> count
+    var s = raw.replace(/\r\n?/g, '\n');
+    for (var i = 0; i < s.length; i++) {
+      var c = s[i];
+      if (c === '\n' || c === ' ' || c === '\t') continue;
+      if (/[0-9]/.test(c)) continue; // tolerate stray line/position numbers
+      var up = c.toUpperCase();
+      if (VALID_IUPAC.has(up)) {
+        cleaned.push(up);
+      } else if (up === '*' || up === '.') {
+        // ignore common padding/stop markers silently
+      } else {
+        invalid.set(up, (invalid.get(up) || 0) + 1);
+      }
+    }
+    return { seq: cleaned.join(''), invalid: invalid };
+  }
+
+  // ---------------------------------------------------------------------
+  // FASTA parsing
+  // ---------------------------------------------------------------------
+  function parseFasta(text, sourceName) {
+    var records = [];
+    var lines = text.replace(/\r\n?/g, '\n').split('\n');
+    var current = null;
+    for (var li = 0; li < lines.length; li++) {
+      var line = lines[li];
+      if (line.length === 0) continue;
+      if (line[0] === '>') {
+        if (current) records.push(current);
+        var header = line.slice(1).trim();
+        var sp = header.indexOf(' ');
+        var id = sp === -1 ? header : header.slice(0, sp);
+        var desc = sp === -1 ? '' : header.slice(sp + 1).trim();
+        current = { id: id || ('record_' + (records.length + 1)), description: desc, rawSeq: '', source: sourceName, format: 'fasta' };
+      } else {
+        if (!current) {
+          // Tolerate raw sequence with no header (paste box use-case)
+          current = { id: sourceName || 'sequence_1', description: '', rawSeq: '', source: sourceName, format: 'fasta' };
+        }
+        current.rawSeq += line;
+      }
+    }
+    if (current) records.push(current);
+    records.forEach(function (r) {
+      var v = validateSequence(r.rawSeq);
+      r.seq = v.seq;
+      r.length = v.seq.length;
+      r.invalidChars = v.invalid;
+    });
+    return records;
+  }
+
+  // ---------------------------------------------------------------------
+  // GenBank parsing (LOCUS/FEATURES/ORIGIN) — supports multi-record files
+  // ---------------------------------------------------------------------
+  function parseGenBank(text, sourceName) {
+    var records = [];
+    var t = text.replace(/\r\n?/g, '\n');
+    // Split on record terminator "//" at start of line, but keep LOCUS-based chunks
+    var chunks = t.split(/\n\/\/\s*\n?/);
+    chunks.forEach(function (chunk, idx) {
+      if (!/LOCUS\s+/.test(chunk)) return;
+      var lines = chunk.split('\n');
+      var locusLine = lines.find(function (l) { return l.indexOf('LOCUS') === 0; }) || '';
+      var locusMatch = locusLine.match(/^LOCUS\s+(\S+)\s+(\d+)\s*bp/i);
+      var id = locusMatch ? locusMatch[1] : (sourceName || ('record_' + (idx + 1)));
+      var topology = /\bcircular\b/i.test(locusLine) ? 'circular' : (/\blinear\b/i.test(locusLine) ? 'linear' : undefined);
+      var definitionLines = [];
+      var inDef = false;
+      var features = [];
+      var origin = [];
+      var inFeatures = false, inOrigin = false;
+      var curFeature = null;
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i];
+        if (/^DEFINITION/.test(line)) { inDef = true; definitionLines.push(line.replace(/^DEFINITION\s*/, '')); continue; }
+        if (inDef) {
+          if (/^\S/.test(line)) { inDef = false; }
+          else { definitionLines.push(line.trim()); continue; }
+        }
+        if (/^FEATURES/.test(line)) { inFeatures = true; inOrigin = false; continue; }
+        if (/^ORIGIN/.test(line)) { inFeatures = false; inOrigin = true; continue; }
+        if (inFeatures) {
+          // Qualifier lines always start (after indent) with '/'; feature header lines
+          // start with a bareword key. Different exporters (Benchling/SnapGene/ApE/NCBI)
+          // vary the exact column width, so detect by leading content, not a fixed count.
+          var indentMatch = line.match(/^(\s+)(.*)$/);
+          if (!indentMatch) continue;
+          var indent = indentMatch[1].length;
+          var rest = indentMatch[2];
+          if (rest[0] === '/' && curFeature) {
+            var qualMatch = rest.match(/^\/(\S+?)=(.*)$/);
+            if (qualMatch) {
+              var key = qualMatch[1];
+              var val = qualMatch[2];
+              var isQuoted = val[0] === '"';
+              var closesHere = !isQuoted || /"\s*$/.test(val);
+              val = val.replace(/^"/, '').replace(/"$/, '');
+              curFeature._pendingKey = closesHere ? null : key;
+              curFeature.qualifiers[key] = curFeature.qualifiers[key] ? curFeature.qualifiers[key] + ';' + val : val;
+              continue;
+            } else {
+              // flag-style qualifier with no value, e.g. /pseudo
+              var flagKey = rest.slice(1).trim();
+              if (flagKey) curFeature.qualifiers[flagKey] = true;
+              continue;
+            }
+          }
+          if (curFeature && curFeature._pendingKey && indent > 5) {
+            var k2 = curFeature._pendingKey;
+            var v2 = rest.replace(/"$/, '');
+            curFeature.qualifiers[k2] += v2;
+            if (/"\s*$/.test(rest)) curFeature._pendingKey = null;
+            continue;
+          }
+          var featHeaderMatch = indent <= 8 ? rest.match(/^(\S+)\s+(.+)$/) : null;
+          if (featHeaderMatch && !/^\d/.test(featHeaderMatch[1])) {
+            if (curFeature) features.push(curFeature);
+            var loc = featHeaderMatch[2].trim();
+            var strand = /complement\(/.test(loc) ? -1 : 1;
+            var nums = [];
+            var numRe = /<?(\d+)(?:\.\.>?(\d+))?/g;
+            var nm;
+            while ((nm = numRe.exec(loc))) {
+              nums.push(parseInt(nm[1], 10));
+              if (nm[2]) nums.push(parseInt(nm[2], 10));
+            }
+            var start = nums.length ? Math.min.apply(null, nums) - 1 : 0;
+            var end = nums.length ? Math.max.apply(null, nums) : 0;
+            curFeature = {
+              type: featHeaderMatch[1],
+              start: Math.max(0, start),
+              end: end,
+              strand: strand,
+              joined: /join\(/.test(loc),
+              qualifiers: {}
+            };
+            continue;
+          }
+        }
+        if (inOrigin) {
+          var seqLine = line.replace(/^\s*\d+\s*/, '').replace(/\s+/g, '');
+          if (seqLine) origin.push(seqLine);
+        }
+      }
+      if (curFeature) features.push(curFeature);
+      features.forEach(function (f) { delete f._pendingKey; });
+      var v = validateSequence(origin.join(''));
+      records.push({
+        id: id,
+        description: definitionLines.join(' ').trim(),
+        rawSeq: origin.join(''),
+        seq: v.seq,
+        length: v.seq.length,
+        invalidChars: v.invalid,
+        features: features,
+        topology: topology,
+        source: sourceName,
+        format: 'genbank'
+      });
+    });
+    return records;
+  }
+
+  function detectFormatAndParse(text, sourceName) {
+    if (/^\s*LOCUS\s+/m.test(text)) return parseGenBank(text, sourceName);
+    return parseFasta(text, sourceName);
+  }
+
+  // ---------------------------------------------------------------------
+  // K-mer minimizer sketch (fast approximate similarity for auto-matching)
+  // ---------------------------------------------------------------------
+  function hashKmer(seq, i, k) {
+    // Simple rolling-friendly polynomial hash (not rolling here for clarity; k is small)
+    var h = 0;
+    for (var j = 0; j < k; j++) {
+      h = (h * 131 + seq.charCodeAt(i + j)) >>> 0;
+    }
+    return h;
+  }
+
+  // Windowed minimizer sketch: for every window of `w` consecutive k-mers, keep the
+  // smallest hash. Returns a Set of minimizer hash values. If `circular`, the sequence
+  // is treated as wrapping (k-1 extra bases appended) so rotation doesn't change the set.
+  function minimizerSketch(seq, k, w, circular) {
+    var s = circular ? seq + seq.slice(0, Math.max(0, k - 1)) : seq;
+    var n = s.length - k + 1;
+    if (n <= 0) return new Set();
+    var hashes = new Array(n);
+    for (var i = 0; i < n; i++) hashes[i] = hashKmer(s, i, k);
+    var set = new Set();
+    if (n <= w) {
+      for (i = 0; i < n; i++) set.add(hashes[i]);
+      return set;
+    }
+    for (i = 0; i + w <= n; i++) {
+      var min = hashes[i], minIdx = i;
+      for (var j = 1; j < w; j++) if (hashes[i + j] < min) { min = hashes[i + j]; minIdx = i + j; }
+      set.add(min);
+    }
+    return set;
+  }
+
+  function sketchSimilarity(setA, setB) {
+    if (setA.size === 0 || setB.size === 0) return 0;
+    var inter = 0;
+    var small = setA.size < setB.size ? setA : setB;
+    var big = setA.size < setB.size ? setB : setA;
+    small.forEach(function (h) { if (big.has(h)) inter++; });
+    // containment relative to the smaller sketch, blended with symmetric Jaccard
+    var containment = inter / small.size;
+    var jaccard = inter / (setA.size + setB.size - inter);
+    return 0.6 * containment + 0.4 * jaccard;
+  }
+
+  // Best similarity of `query` against `ref` (tests ref forward + reverse complement,
+  // and treats ref as circular if refCircular).
+  function bestSimilarity(querySeq, refSeq, refCircular, k, w) {
+    k = k || 15; w = w || 10;
+    var qSet = minimizerSketch(querySeq, k, w, false);
+    var refFwd = minimizerSketch(refSeq, k, w, !!refCircular);
+    var refRev = minimizerSketch(reverseComplement(refSeq), k, w, !!refCircular);
+    var simF = sketchSimilarity(qSet, refFwd);
+    var simR = sketchSimilarity(qSet, refRev);
+    return { similarity: Math.max(simF, simR), orientation: simF >= simR ? 'forward' : 'reverse' };
+  }
+
+  // ---------------------------------------------------------------------
+  // Exact k-mer seeding + anchor chaining for the real alignment
+  // ---------------------------------------------------------------------
+  function buildKmerIndex(seq, k) {
+    var idx = new Map();
+    var n = seq.length - k + 1;
+    for (var i = 0; i < n; i++) {
+      var key = seq.substr(i, k);
+      if (key.indexOf('N') !== -1) continue; // skip ambiguous seeds, they're not reliable exact anchors
+      var arr = idx.get(key);
+      if (arr) arr.push(i); else idx.set(key, [i]);
+    }
+    return idx;
+  }
+
+  function findAnchors(query, refIndex, k, maxHitsPerKmer) {
+    maxHitsPerKmer = maxHitsPerKmer || 40;
+    var anchors = [];
+    var n = query.length - k + 1;
+    var step = n > 20000 ? Math.max(1, Math.floor(k / 3)) : 1; // sparser sampling for huge queries
+    for (var i = 0; i < n; i += step) {
+      var key = query.substr(i, k);
+      if (key.indexOf('N') !== -1) continue;
+      var hits = refIndex.get(key);
+      if (!hits || hits.length > maxHitsPerKmer) continue;
+      for (var h = 0; h < hits.length; h++) anchors.push({ q: i, r: hits[h] });
+    }
+    return anchors;
+  }
+
+  // Bucket anchors by diagonal (r-q) into candidate clusters (bucket width = 2*radius
+  // so nearby diagonals merge into one cluster).
+  function clusterAnchorsByDiagonal(anchors, radius) {
+    if (anchors.length === 0) return [];
+    var buckets = new Map(); // bucketKey -> anchors[]
+    var bw = Math.max(1, radius * 2);
+    anchors.forEach(function (a) {
+      var d = a.r - a.q;
+      var key = Math.round(d / bw);
+      var arr = buckets.get(key);
+      if (arr) arr.push(a); else buckets.set(key, [a]);
+    });
+    // merge neighboring bucket keys (key, key+1) to avoid splitting a real cluster at a boundary
+    var keys = Array.from(buckets.keys()).sort(function (a, b) { return a - b; });
+    var used = new Set();
+    var clusters = [];
+    keys.forEach(function (kk) {
+      if (used.has(kk)) return;
+      var group = buckets.get(kk).slice();
+      if (buckets.has(kk + 1)) { group = group.concat(buckets.get(kk + 1)); used.add(kk + 1); }
+      group.sort(function (a, b) { return a.q - b.q; });
+      var rs = group.map(function (a) { return a.r; });
+      clusters.push({
+        anchors: group,
+        minQ: group[0].q,
+        maxQ: group[group.length - 1].q,
+        minR: Math.min.apply(null, rs),
+        maxR: Math.max.apply(null, rs),
+        weight: group.length
+      });
+    });
+    return clusters;
+  }
+
+  // Colinear-chain the diagonal clusters: a single indel (of ANY size — a designed
+  // insert/marker swap, not just a small scar) splits real anchors into two clusters at
+  // different diagonals. Picking only the single best-supported cluster would silently
+  // drop the other side of a genuine large indel and let the DP smear it into a run of
+  // false small mismatches/indels instead — exactly the "confidently wrong" failure this
+  // tool must avoid. So instead of taking one cluster, chain together every cluster that
+  // is mutually consistent (monotonically increasing in both query and reference
+  // position, i.e. same strand / forward progress with no size cap on the gap between
+  // them) and use the chain with the greatest total anchor support.
+  function chainAnchorClusters(clusters, slop) {
+    if (clusters.length === 0) return [];
+    var sorted = clusters.slice().sort(function (a, b) { return a.minQ - b.minQ; });
+    var n = sorted.length;
+    var best = new Array(n);
+    var prev = new Array(n).fill(-1);
+    for (var i = 0; i < n; i++) {
+      best[i] = sorted[i].weight;
+      for (var j = 0; j < i; j++) {
+        if (sorted[j].maxQ <= sorted[i].minQ + slop && sorted[j].maxR <= sorted[i].minR + slop) {
+          var cand = best[j] + sorted[i].weight;
+          if (cand > best[i]) { best[i] = cand; prev[i] = j; }
+        }
+      }
+    }
+    var bi = 0;
+    for (i = 1; i < n; i++) if (best[i] > best[bi]) bi = i;
+    var chainIdx = [];
+    while (bi !== -1) { chainIdx.push(bi); bi = prev[bi]; }
+    chainIdx.reverse();
+    var merged = [];
+    chainIdx.forEach(function (idx) { merged = merged.concat(sorted[idx].anchors); });
+    merged.sort(function (a, b) { return a.q - b.q; });
+    return merged;
+  }
+
+  function bestAnchorChain(anchors, radius, slop) {
+    var clusters = clusterAnchorsByDiagonal(anchors, radius);
+    return chainAnchorClusters(clusters, slop);
+  }
+
+  // ---------------------------------------------------------------------
+  // Banded, affine-gap, four-end-free (glocal) alignment over a cropped window
+  // ---------------------------------------------------------------------
+  // gapOpen is deliberately steep relative to match/mismatch: a shallow gap-open cost
+  // lets the DP "save" a couple of points by fragmenting one genuine indel into several
+  // gap-open events plus a few incidental short random matches inside the gap region —
+  // mathematically optimal under the scoring, but a fragmented, confusing report of what
+  // should be one clean indel. A steep gapOpen (with a gentle gapExtend so the true
+  // indel's own length isn't over-penalized) makes reopening only pay off when there is
+  // real, substantial matching evidence to justify it.
+  var DEFAULT_SCORING = { match: 2, ambiguous: 1, mismatch: -8, gapOpen: -30, gapExtend: -0.5 };
+
+  function computeBand(anchorsLocal, qLen, rLen, baseRadius) {
+    // anchorsLocal: [{q,r}] sorted by q, already in local (cropped) coordinates.
+    var lo = new Int32Array(qLen + 1);
+    var hi = new Int32Array(qLen + 1);
+    if (anchorsLocal.length === 0) {
+      for (var i = 0; i <= qLen; i++) { lo[i] = 0; hi[i] = rLen; }
+      return { lo: lo, hi: hi };
+    }
+    // Build breakpoints list including extrapolated ends
+    var pts = anchorsLocal.map(function (a) { return { q: a.q, r: a.r }; });
+    for (var i = 0; i <= qLen; i++) {
+      var predR, radius;
+      if (i <= pts[0].q) {
+        var diag0 = pts[0].r - pts[0].q;
+        predR = i + diag0;
+        radius = baseRadius;
+      } else if (i >= pts[pts.length - 1].q) {
+        var diagN = pts[pts.length - 1].r - pts[pts.length - 1].q;
+        predR = i + diagN;
+        radius = baseRadius;
+      } else {
+        // find bracketing anchors
+        var lo2 = 0, hi2 = pts.length - 1;
+        while (hi2 - lo2 > 1) {
+          var mid = (lo2 + hi2) >> 1;
+          if (pts[mid].q <= i) lo2 = mid; else hi2 = mid;
+        }
+        var A = pts[lo2], B = pts[hi2];
+        var frac = (B.q === A.q) ? 0 : (i - A.q) / (B.q - A.q);
+        predR = A.r + frac * (B.r - A.r);
+        var diagA = A.r - A.q, diagB = B.r - B.q;
+        radius = Math.max(baseRadius, Math.abs(diagB - diagA) / 2 + baseRadius);
+      }
+      var lov = Math.min(rLen, Math.max(0, Math.floor(predR - radius)));
+      var hiv = Math.max(0, Math.min(rLen, Math.ceil(predR + radius)));
+      if (hiv < lov) hiv = lov;
+      lo[i] = lov; hi[i] = hiv;
+    }
+    return { lo: lo, hi: hi };
+  }
+
+  var NEG = -1e15;
+
+  // Semi-global (all four ends free) banded affine-gap alignment of q (local window) vs r (local window).
+  function bandedGlocalAlign(q, r, band, scoring) {
+    var n = q.length, m = r.length;
+    var lo = band.lo, hi = band.hi;
+    // Row-major sparse storage keyed by [i] -> Float64Array sized (hi[i]-lo[i]+1)
+    var M = new Array(n + 1), Ix = new Array(n + 1), Iy = new Array(n + 1);
+    for (var i = 0; i <= n; i++) {
+      var w = hi[i] - lo[i] + 1;
+      M[i] = new Float64Array(w).fill(NEG);
+      Ix[i] = new Float64Array(w).fill(NEG);
+      Iy[i] = new Float64Array(w).fill(NEG);
+    }
+    // free-start: row 0 and any cell where j===0 get M=0
+    for (var j = lo[0]; j <= hi[0]; j++) M[0][j - lo[0]] = 0;
+    for (i = 1; i <= n; i++) {
+      if (lo[i] === 0) M[i][0] = 0; // column 0 free start, when in band
+    }
+
+    function getM(i, j) { if (j < lo[i] || j > hi[i]) return NEG; return M[i][j - lo[i]]; }
+    function getIx(i, j) { if (j < lo[i] || j > hi[i]) return NEG; return Ix[i][j - lo[i]]; }
+    function getIy(i, j) { if (j < lo[i] || j > hi[i]) return NEG; return Iy[i][j - lo[i]]; }
+
+    for (i = 1; i <= n; i++) {
+      var loI = lo[i], hiI = hi[i];
+      for (j = loI; j <= hiI; j++) {
+        var idx = j - loI;
+        // M: diagonal move, consumes q[i-1], r[j-1]
+        if (j >= 1) {
+          var s = scoreBases(q[i - 1], r[j - 1], scoring);
+          var diagBest = Math.max(getM(i - 1, j - 1), getIx(i - 1, j - 1), getIy(i - 1, j - 1));
+          M[i][idx] = (diagBest <= NEG / 2) ? (j - 1 === -1 ? s : NEG) : diagBest + s;
+          if (j - 1 < lo[i - 1] || j - 1 > hi[i - 1]) {
+            // previous diagonal cell outside band: only valid if this is effectively a free-start cell
+            M[i][idx] = NEG;
+          }
+        } else {
+          M[i][idx] = NEG;
+        }
+        // Ix: consumes q[i-1] only (gap in r) — vertical move
+        var openX = getM(i - 1, j) + scoring.gapOpen;
+        var extX = getIx(i - 1, j) + scoring.gapExtend;
+        Ix[i][idx] = Math.max(openX, extX);
+        // Iy: consumes r[j-1] only (gap in q) — horizontal move
+        var openY = (j >= 1) ? getM(i, j - 1) + scoring.gapOpen : NEG;
+        var extY = (j >= 1) ? getIy(i, j - 1) + scoring.gapExtend : NEG;
+        Iy[i][idx] = Math.max(openY, extY);
+      }
+      if (lo[i] === 0 && M[i][0] < 0) M[i][0] = 0; // keep column-0 free-start valid across rows
+    }
+
+    // free-end: best over last row (i=n) and over column j=m wherever in band
+    var best = -Infinity, bestI = n, bestJ = hi[n];
+    for (j = lo[n]; j <= hi[n]; j++) {
+      var v = Math.max(getM(n, j), getIx(n, j), getIy(n, j));
+      if (v > best) { best = v; bestI = n; bestJ = j; }
+    }
+    for (i = 0; i <= n; i++) {
+      if (hi[i] === m) {
+        var v2 = Math.max(getM(i, m), getIx(i, m), getIy(i, m));
+        if (v2 > best) { best = v2; bestI = i; bestJ = m; }
+      }
+    }
+
+    // Traceback. Free-start means M[0][*] and M[i][0] (within band) are the zero-cost
+    // boundary: the moment either coordinate reaches 0, we've arrived at that boundary
+    // and must stop — there is no cell at index -1 to continue into, and any remaining
+    // prefix of the longer sequence is simply the free unaligned overhang (excluded from
+    // the reported alignment, not padded with gap columns).
+    var opsQ = [], opsR = [];
+    var ci = bestI, cj = bestJ;
+    var state;
+    if (ci === 0 || cj === 0) {
+      state = null; // nothing to trace back; bestI/bestJ already at a free boundary
+    } else {
+      var mv = getM(ci, cj), ixv = getIx(ci, cj), iyv = getIy(ci, cj);
+      state = (mv >= ixv && mv >= iyv) ? 'M' : (ixv >= iyv ? 'Ix' : 'Iy');
+    }
+    var guard = 0, guardMax = (n + m + 5) * 4;
+    while (ci > 0 && cj > 0 && guard++ < guardMax) {
+      if (state === 'M') {
+        var dM = getM(ci - 1, cj - 1), dIx = getIx(ci - 1, cj - 1), dIy = getIy(ci - 1, cj - 1);
+        opsQ.push(q[ci - 1]); opsR.push(r[cj - 1]);
+        ci -= 1; cj -= 1;
+        state = (dM >= dIx && dM >= dIy) ? 'M' : (dIx >= dIy ? 'Ix' : 'Iy');
+      } else if (state === 'Ix') {
+        var fromM = getM(ci - 1, cj) + scoring.gapOpen;
+        var fromIx = getIx(ci - 1, cj) + scoring.gapExtend;
+        opsQ.push(q[ci - 1]); opsR.push('-');
+        ci -= 1;
+        state = (fromIx >= fromM) ? 'Ix' : 'M';
+      } else { // Iy
+        var fromM2 = getM(ci, cj - 1) + scoring.gapOpen;
+        var fromIy2 = getIy(ci, cj - 1) + scoring.gapExtend;
+        opsQ.push('-'); opsR.push(r[cj - 1]);
+        cj -= 1;
+        state = (fromIy2 >= fromM2) ? 'Iy' : 'M';
+      }
+    }
+    opsQ.reverse(); opsR.reverse();
+    return {
+      score: best,
+      alignedQ: opsQ.join(''),
+      alignedR: opsR.join(''),
+      qStart: ci, qEnd: bestI, // local coords, half-open [qStart,qEnd)
+      rStart: cj, rEnd: bestJ
+    };
+  }
+
+  // ---------------------------------------------------------------------
+  // High level: align one query against one reference (linear or circular),
+  // trying both orientations, returning a normalized report.
+  // ---------------------------------------------------------------------
+  var MIN_ANCHORS_FOR_CONFIDENCE = 3;
+
+  function alignOneOrientation(querySeq, refSeqForIndex, refIsDoubled, refOriginalLen, opts) {
+    var k = opts.seedK || (refSeqForIndex.length < 300 ? 9 : 13);
+    // Band radius covers small/typical indels (a handful to a few dozen bp at GGA/HiFi
+    // junctions); large jumps between two real matches are handled by the per-segment
+    // adaptive widening in computeBand, not by inflating this base value with sequence
+    // length (that would blow up the O(n*band) DP cost on long plasmids for no benefit).
+    var baseRadius = opts.baseRadius || Math.max(25, Math.round(0.0015 * Math.max(querySeq.length, refSeqForIndex.length)));
+    baseRadius = Math.min(baseRadius, 120);
+
+    var refIndex = buildKmerIndex(refSeqForIndex, k);
+    var rawAnchors = findAnchors(querySeq, refIndex, k);
+    if (rawAnchors.length < MIN_ANCHORS_FOR_CONFIDENCE) return null;
+    var bucket = bestAnchorChain(rawAnchors, baseRadius, baseRadius + k);
+    if (bucket.length < MIN_ANCHORS_FOR_CONFIDENCE) return null;
+
+    var margin = baseRadius + k;
+    var qLo = Math.max(0, bucket[0].q - margin);
+    var qHi = Math.min(querySeq.length, bucket[bucket.length - 1].q + k + margin);
+    var rMinAnchor = Math.min.apply(null, bucket.map(function (a) { return a.r; }));
+    var rMaxAnchor = Math.max.apply(null, bucket.map(function (a) { return a.r; }));
+    var rLo = Math.max(0, rMinAnchor - margin);
+    var rHi = Math.min(refSeqForIndex.length, rMaxAnchor + k + margin);
+
+    var qWin = querySeq.slice(qLo, qHi);
+    var rWin = refSeqForIndex.slice(rLo, rHi);
+    var localAnchors = bucket.map(function (a) { return { q: a.q - qLo, r: a.r - rLo }; })
+      .filter(function (a) { return a.q >= 0 && a.q <= qWin.length && a.r >= 0 && a.r <= rWin.length; });
+
+    var band = computeBand(localAnchors, qWin.length, rWin.length, baseRadius);
+    var scoring = opts.scoring || DEFAULT_SCORING;
+    var res = bandedGlocalAlign(qWin, rWin, band, scoring);
+
+    var absRefStart = rLo + res.rStart;
+    var absRefEnd = rLo + res.rEnd;
+    var absQueryStart = qLo + res.qStart;
+    var absQueryEnd = qLo + res.qEnd;
+
+    return {
+      score: res.score,
+      alignedQ: res.alignedQ,
+      alignedR: res.alignedR,
+      queryStart: absQueryStart,
+      queryEnd: absQueryEnd,
+      refStart: absRefStart, // in refSeqForIndex coords (doubled coords if circular)
+      refEnd: absRefEnd,
+      anchorCount: bucket.length,
+      seedK: k
+    };
+  }
+
+  function summarizeAlignment(alignment, queryLen, refLen, circular) {
+    var aq = alignment.alignedQ, ar = alignment.alignedR;
+    var mismatches = [], insertions = [], deletions = [], ambiguous = [];
+    var exactMatches = 0, ambiguousMatches = 0;
+    var refPos = alignment.refStart; // may be >= refLen for doubled coords; caller passes appropriate refLen for modulo
+    var curIns = null, curDel = null;
+    for (var i = 0; i < aq.length; i++) {
+      var qc = aq[i], rc = ar[i];
+      if (qc !== '-' && rc !== '-') {
+        if (curIns) { insertions.push(curIns); curIns = null; }
+        if (curDel) { deletions.push(curDel); curDel = null; }
+        var cls = classifyBases(qc, rc);
+        if (cls === 'match') exactMatches++;
+        else if (cls === 'ambiguous') { ambiguousMatches++; ambiguous.push({ refPos: mod(refPos, refLen), refBase: rc, queryBase: qc, type: 'ambiguous' }); }
+        else mismatches.push({ refPos: mod(refPos, refLen), refBase: rc, queryBase: qc, type: 'substitution' });
+        refPos++;
+      } else if (rc === '-') {
+        // insertion: extra base in query, not in reference
+        if (!curIns) curIns = { refPos: mod(refPos, refLen), size: 0, bases: '' };
+        curIns.size++; curIns.bases += qc;
+        if (curDel) { deletions.push(curDel); curDel = null; }
+      } else if (qc === '-') {
+        // deletion: reference base missing from query
+        if (!curDel) curDel = { refPos: mod(refPos, refLen), size: 0, bases: '' };
+        curDel.size++; curDel.bases += rc;
+        refPos++;
+        if (curIns) { insertions.push(curIns); curIns = null; }
+      }
+    }
+    if (curIns) insertions.push(curIns);
+    if (curDel) deletions.push(curDel);
+    var alignedLength = aq.length;
+    var identityDenom = exactMatches + ambiguousMatches + mismatches.length +
+      insertions.reduce(function (s, x) { return s + x.size; }, 0) +
+      deletions.reduce(function (s, x) { return s + x.size; }, 0);
+    var percentIdentity = alignedLength > 0 ? (100 * (exactMatches + ambiguousMatches) / alignedLength) : 0;
+    return {
+      alignedLength: alignedLength,
+      exactMatches: exactMatches,
+      ambiguousMatches: ambiguousMatches,
+      mismatches: mismatches,
+      insertions: insertions,
+      deletions: deletions,
+      ambiguous: ambiguous,
+      percentIdentity: percentIdentity,
+      indelCount: insertions.length + deletions.length
+    };
+  }
+
+  function mod(a, n) { if (!n) return a; var r = a % n; return r < 0 ? r + n : r; }
+
+  // Public entry point.
+  // referenceObj: {seq, length, circular}
+  // queryObj: {seq, length}
+  function alignQueryToReference(queryObj, referenceObj, opts) {
+    opts = opts || {};
+    var refLen = referenceObj.length;
+    var circular = !!referenceObj.circular;
+    var candidates = [];
+
+    var orientations = [
+      { seq: queryObj.seq, label: 'forward' },
+      { seq: reverseComplement(queryObj.seq), label: 'reverse_complement' }
+    ];
+
+    orientations.forEach(function (o) {
+      var refForIndex = circular ? referenceObj.seq + referenceObj.seq : referenceObj.seq;
+      var res = alignOneOrientation(o.seq, refForIndex, circular, refLen, opts);
+      if (res) {
+        res.orientation = o.label;
+        res.queryLenUsed = o.seq.length;
+        candidates.push(res);
+      }
+    });
+
+    if (candidates.length === 0) {
+      return { noConfidentMatch: true, reason: 'No seed matches found in either orientation above the confidence threshold.' };
+    }
+    candidates.sort(function (a, b) { return b.score - a.score; });
+    var best = candidates[0];
+
+    var summary = summarizeAlignment(best, queryObj.length, refLen, circular);
+    var rotationOffset = circular ? mod(best.refStart, refLen) : null;
+
+    // similarity sanity threshold: require identity within aligned region reasonably high
+    // and a minimum anchored fraction, otherwise flag as low confidence rather than hiding it.
+    var lowConfidence = summary.percentIdentity < 70 || best.anchorCount < MIN_ANCHORS_FOR_CONFIDENCE;
+
+    return {
+      noConfidentMatch: false,
+      lowConfidence: lowConfidence,
+      orientation: best.orientation,
+      rotationOffset: rotationOffset,
+      refLen: refLen,
+      queryLen: queryObj.length,
+      queryLenUsed: best.queryLenUsed,
+      alignedQueryStart: best.queryStart,
+      alignedQueryEnd: best.queryEnd,
+      alignedRefStart: mod(best.refStart, refLen),
+      alignedRefEnd: mod(best.refEnd - 1, refLen) + 1,
+      rawRefStart: best.refStart,
+      rawRefEnd: best.refEnd,
+      alignedQ: best.alignedQ,
+      alignedR: best.alignedR,
+      score: best.score,
+      anchorCount: best.anchorCount,
+      seedK: best.seedK,
+      percentIdentity: summary.percentIdentity,
+      alignedLength: summary.alignedLength,
+      exactMatches: summary.exactMatches,
+      ambiguousMatches: summary.ambiguousMatches,
+      mismatches: summary.mismatches,
+      insertions: summary.insertions,
+      deletions: summary.deletions,
+      ambiguous: summary.ambiguous,
+      indelCount: summary.indelCount
+    };
+  }
+
+  // Build a corrected FASTA: query re-oriented to reference strand and, if circular,
+  // rotated so it starts at the reference's origin (position 0).
+  //
+  // Mapping (assuming near-uniform offset, i.e. ignoring small indel drift, which is an
+  // acceptable approximation for a convenience "re-linearize to origin" export):
+  //   seq[alignedQueryStart] corresponds to ref position `rotationOffset`.
+  // We want new[0] to correspond to ref position 0, so we rotate seq left by:
+  //   i0 = (alignedQueryStart - rotationOffset) mod seq.length
+  function buildCorrectedQueryFasta(queryObj, referenceObj, alignResult) {
+    var seq = queryObj.seq;
+    if (alignResult.orientation === 'reverse_complement') seq = reverseComplement(seq);
+    if (referenceObj.circular && alignResult.rotationOffset != null && seq.length > 0) {
+      var i0 = mod(alignResult.alignedQueryStart - alignResult.rotationOffset, seq.length);
+      seq = seq.slice(i0) + seq.slice(0, i0);
+    }
+    return seq;
+  }
+
+  var AlignCore = {
+    reverseComplement: reverseComplement,
+    classifyBases: classifyBases,
+    validateSequence: validateSequence,
+    parseFasta: parseFasta,
+    parseGenBank: parseGenBank,
+    detectFormatAndParse: detectFormatAndParse,
+    minimizerSketch: minimizerSketch,
+    sketchSimilarity: sketchSimilarity,
+    bestSimilarity: bestSimilarity,
+    buildKmerIndex: buildKmerIndex,
+    findAnchors: findAnchors,
+    clusterAnchorsByDiagonal: clusterAnchorsByDiagonal,
+    chainAnchorClusters: chainAnchorClusters,
+    bestAnchorChain: bestAnchorChain,
+    computeBand: computeBand,
+    bandedGlocalAlign: bandedGlocalAlign,
+    alignQueryToReference: alignQueryToReference,
+    buildCorrectedQueryFasta: buildCorrectedQueryFasta,
+    mod: mod,
+    DEFAULT_SCORING: DEFAULT_SCORING
+  };
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = AlignCore;
+  } else {
+    root.AlignCore = AlignCore;
+  }
+})(typeof self !== 'undefined' ? self : this);
+
+// worker-footer.js — appended after core.js inside the Worker's blob source.
+// AlignCore is already defined on `self` at this point (core.js ran first in the blob).
+(function () {
+  'use strict';
+
+  function computeSketchMatrix(queries, references) {
+    var matrix = [];
+    for (var qi = 0; qi < queries.length; qi++) {
+      var row = [];
+      for (var ri = 0; ri < references.length; ri++) {
+        var q = queries[qi], r = references[ri];
+        var res = AlignCore.bestSimilarity(q.seq, r.seq, !!r.circular, 15, 10);
+        row.push({ similarity: res.similarity, orientation: res.orientation });
+      }
+      matrix.push(row);
+      self.postMessage({ type: 'sketchProgress', completed: qi + 1, total: queries.length });
+    }
+    return matrix;
+  }
+
+  self.onmessage = function (e) {
+    var msg = e.data || {};
+    try {
+      if (msg.cmd === 'sketchMatch') {
+        var matrix = computeSketchMatrix(msg.queries, msg.references);
+        self.postMessage({ type: 'sketchDone', id: msg.id, matrix: matrix });
+      } else if (msg.cmd === 'batchAlign') {
+        var jobs = msg.jobs;
+        var results = [];
+        for (var i = 0; i < jobs.length; i++) {
+          var job = jobs[i];
+          var t0 = Date.now();
+          var result;
+          try {
+            result = AlignCore.alignQueryToReference(job.query, job.reference, job.opts || {});
+          } catch (err) {
+            result = { noConfidentMatch: true, reason: 'Alignment engine error: ' + (err && err.message ? err.message : String(err)) };
+          }
+          result.pairId = job.pairId;
+          result.elapsedMs = Date.now() - t0;
+          if (!result.noConfidentMatch) {
+            result.correctedFasta = AlignCore.buildCorrectedQueryFasta(job.query, job.reference, result);
+          }
+          results.push(result);
+          self.postMessage({ type: 'batchProgress', id: msg.id, completed: i + 1, total: jobs.length, pairId: job.pairId, result: result });
+        }
+        self.postMessage({ type: 'batchDone', id: msg.id, results: results });
+      } else {
+        self.postMessage({ type: 'error', id: msg.id, message: 'Unknown worker command: ' + msg.cmd });
+      }
+    } catch (err) {
+      self.postMessage({ type: 'error', id: msg.id, message: (err && err.message) ? err.message : String(err) });
+    }
+  };
+
+  self.postMessage({ type: 'ready' });
+})();
+
+</script>
+
+<script>
+// core.js — Plasmid alignment engine (pure JS, no DOM). Shared by the Web Worker and
+// by this Node test harness. Exposed as global `AlignCore` in a browser/worker, and
+// via module.exports under Node.
+(function (root) {
+  'use strict';
+
+  // ---------------------------------------------------------------------
+  // IUPAC nucleotide handling
+  // ---------------------------------------------------------------------
+  var IUPAC_SETS = {
+    A: 'A', C: 'C', G: 'G', T: 'T', U: 'T',
+    R: 'AG', Y: 'CT', S: 'GC', W: 'AT', K: 'GT', M: 'AC',
+    B: 'CGT', D: 'AGT', H: 'ACT', V: 'ACG',
+    N: 'ACGT'
+  };
+  var VALID_IUPAC = new Set(Object.keys(IUPAC_SETS).concat(['-']));
+  var COMPLEMENT = {
+    A: 'T', C: 'G', G: 'C', T: 'A', U: 'A',
+    R: 'Y', Y: 'R', S: 'S', W: 'W', K: 'M', M: 'K',
+    B: 'V', V: 'B', D: 'H', H: 'D', N: 'N'
+  };
+
+  function reverseComplement(seq) {
+    var out = new Array(seq.length);
+    for (var i = 0; i < seq.length; i++) {
+      var c = seq[seq.length - 1 - i].toUpperCase();
+      out[i] = COMPLEMENT[c] || 'N';
+    }
+    return out.join('');
+  }
+
+  // Classify a column of the alignment: 'match' | 'ambiguous' | 'mismatch'
+  function classifyBases(a, b) {
+    a = a.toUpperCase(); b = b.toUpperCase();
+    var sa = IUPAC_SETS[a] || 'ACGT';
+    var sb = IUPAC_SETS[b] || 'ACGT';
+    if (sa.length === 1 && sb.length === 1) return sa === sb ? 'match' : 'mismatch';
+    for (var i = 0; i < sa.length; i++) if (sb.indexOf(sa[i]) !== -1) return 'ambiguous';
+    return 'mismatch';
+  }
+
+  // Score used by the DP (not the same as reporting classification, but consistent)
+  function scoreBases(a, b, sc) {
+    var cls = classifyBases(a, b);
+    if (cls === 'match') return sc.match;
+    if (cls === 'ambiguous') return sc.ambiguous;
+    return sc.mismatch;
+  }
+
+  function validateSequence(raw) {
+    // Strip whitespace/line numbers/CRLF, uppercase, collect invalid chars.
+    var cleaned = [];
+    var invalid = new Map(); // char -> count
+    var s = raw.replace(/\r\n?/g, '\n');
+    for (var i = 0; i < s.length; i++) {
+      var c = s[i];
+      if (c === '\n' || c === ' ' || c === '\t') continue;
+      if (/[0-9]/.test(c)) continue; // tolerate stray line/position numbers
+      var up = c.toUpperCase();
+      if (VALID_IUPAC.has(up)) {
+        cleaned.push(up);
+      } else if (up === '*' || up === '.') {
+        // ignore common padding/stop markers silently
+      } else {
+        invalid.set(up, (invalid.get(up) || 0) + 1);
+      }
+    }
+    return { seq: cleaned.join(''), invalid: invalid };
+  }
+
+  // ---------------------------------------------------------------------
+  // FASTA parsing
+  // ---------------------------------------------------------------------
+  function parseFasta(text, sourceName) {
+    var records = [];
+    var lines = text.replace(/\r\n?/g, '\n').split('\n');
+    var current = null;
+    for (var li = 0; li < lines.length; li++) {
+      var line = lines[li];
+      if (line.length === 0) continue;
+      if (line[0] === '>') {
+        if (current) records.push(current);
+        var header = line.slice(1).trim();
+        var sp = header.indexOf(' ');
+        var id = sp === -1 ? header : header.slice(0, sp);
+        var desc = sp === -1 ? '' : header.slice(sp + 1).trim();
+        current = { id: id || ('record_' + (records.length + 1)), description: desc, rawSeq: '', source: sourceName, format: 'fasta' };
+      } else {
+        if (!current) {
+          // Tolerate raw sequence with no header (paste box use-case)
+          current = { id: sourceName || 'sequence_1', description: '', rawSeq: '', source: sourceName, format: 'fasta' };
+        }
+        current.rawSeq += line;
+      }
+    }
+    if (current) records.push(current);
+    records.forEach(function (r) {
+      var v = validateSequence(r.rawSeq);
+      r.seq = v.seq;
+      r.length = v.seq.length;
+      r.invalidChars = v.invalid;
+    });
+    return records;
+  }
+
+  // ---------------------------------------------------------------------
+  // GenBank parsing (LOCUS/FEATURES/ORIGIN) — supports multi-record files
+  // ---------------------------------------------------------------------
+  function parseGenBank(text, sourceName) {
+    var records = [];
+    var t = text.replace(/\r\n?/g, '\n');
+    // Split on record terminator "//" at start of line, but keep LOCUS-based chunks
+    var chunks = t.split(/\n\/\/\s*\n?/);
+    chunks.forEach(function (chunk, idx) {
+      if (!/LOCUS\s+/.test(chunk)) return;
+      var lines = chunk.split('\n');
+      var locusLine = lines.find(function (l) { return l.indexOf('LOCUS') === 0; }) || '';
+      var locusMatch = locusLine.match(/^LOCUS\s+(\S+)\s+(\d+)\s*bp/i);
+      var id = locusMatch ? locusMatch[1] : (sourceName || ('record_' + (idx + 1)));
+      var topology = /\bcircular\b/i.test(locusLine) ? 'circular' : (/\blinear\b/i.test(locusLine) ? 'linear' : undefined);
+      var definitionLines = [];
+      var inDef = false;
+      var features = [];
+      var origin = [];
+      var inFeatures = false, inOrigin = false;
+      var curFeature = null;
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i];
+        if (/^DEFINITION/.test(line)) { inDef = true; definitionLines.push(line.replace(/^DEFINITION\s*/, '')); continue; }
+        if (inDef) {
+          if (/^\S/.test(line)) { inDef = false; }
+          else { definitionLines.push(line.trim()); continue; }
+        }
+        if (/^FEATURES/.test(line)) { inFeatures = true; inOrigin = false; continue; }
+        if (/^ORIGIN/.test(line)) { inFeatures = false; inOrigin = true; continue; }
+        if (inFeatures) {
+          // Qualifier lines always start (after indent) with '/'; feature header lines
+          // start with a bareword key. Different exporters (Benchling/SnapGene/ApE/NCBI)
+          // vary the exact column width, so detect by leading content, not a fixed count.
+          var indentMatch = line.match(/^(\s+)(.*)$/);
+          if (!indentMatch) continue;
+          var indent = indentMatch[1].length;
+          var rest = indentMatch[2];
+          if (rest[0] === '/' && curFeature) {
+            var qualMatch = rest.match(/^\/(\S+?)=(.*)$/);
+            if (qualMatch) {
+              var key = qualMatch[1];
+              var val = qualMatch[2];
+              var isQuoted = val[0] === '"';
+              var closesHere = !isQuoted || /"\s*$/.test(val);
+              val = val.replace(/^"/, '').replace(/"$/, '');
+              curFeature._pendingKey = closesHere ? null : key;
+              curFeature.qualifiers[key] = curFeature.qualifiers[key] ? curFeature.qualifiers[key] + ';' + val : val;
+              continue;
+            } else {
+              // flag-style qualifier with no value, e.g. /pseudo
+              var flagKey = rest.slice(1).trim();
+              if (flagKey) curFeature.qualifiers[flagKey] = true;
+              continue;
+            }
+          }
+          if (curFeature && curFeature._pendingKey && indent > 5) {
+            var k2 = curFeature._pendingKey;
+            var v2 = rest.replace(/"$/, '');
+            curFeature.qualifiers[k2] += v2;
+            if (/"\s*$/.test(rest)) curFeature._pendingKey = null;
+            continue;
+          }
+          var featHeaderMatch = indent <= 8 ? rest.match(/^(\S+)\s+(.+)$/) : null;
+          if (featHeaderMatch && !/^\d/.test(featHeaderMatch[1])) {
+            if (curFeature) features.push(curFeature);
+            var loc = featHeaderMatch[2].trim();
+            var strand = /complement\(/.test(loc) ? -1 : 1;
+            var nums = [];
+            var numRe = /<?(\d+)(?:\.\.>?(\d+))?/g;
+            var nm;
+            while ((nm = numRe.exec(loc))) {
+              nums.push(parseInt(nm[1], 10));
+              if (nm[2]) nums.push(parseInt(nm[2], 10));
+            }
+            var start = nums.length ? Math.min.apply(null, nums) - 1 : 0;
+            var end = nums.length ? Math.max.apply(null, nums) : 0;
+            curFeature = {
+              type: featHeaderMatch[1],
+              start: Math.max(0, start),
+              end: end,
+              strand: strand,
+              joined: /join\(/.test(loc),
+              qualifiers: {}
+            };
+            continue;
+          }
+        }
+        if (inOrigin) {
+          var seqLine = line.replace(/^\s*\d+\s*/, '').replace(/\s+/g, '');
+          if (seqLine) origin.push(seqLine);
+        }
+      }
+      if (curFeature) features.push(curFeature);
+      features.forEach(function (f) { delete f._pendingKey; });
+      var v = validateSequence(origin.join(''));
+      records.push({
+        id: id,
+        description: definitionLines.join(' ').trim(),
+        rawSeq: origin.join(''),
+        seq: v.seq,
+        length: v.seq.length,
+        invalidChars: v.invalid,
+        features: features,
+        topology: topology,
+        source: sourceName,
+        format: 'genbank'
+      });
+    });
+    return records;
+  }
+
+  function detectFormatAndParse(text, sourceName) {
+    if (/^\s*LOCUS\s+/m.test(text)) return parseGenBank(text, sourceName);
+    return parseFasta(text, sourceName);
+  }
+
+  // ---------------------------------------------------------------------
+  // K-mer minimizer sketch (fast approximate similarity for auto-matching)
+  // ---------------------------------------------------------------------
+  function hashKmer(seq, i, k) {
+    // Simple rolling-friendly polynomial hash (not rolling here for clarity; k is small)
+    var h = 0;
+    for (var j = 0; j < k; j++) {
+      h = (h * 131 + seq.charCodeAt(i + j)) >>> 0;
+    }
+    return h;
+  }
+
+  // Windowed minimizer sketch: for every window of `w` consecutive k-mers, keep the
+  // smallest hash. Returns a Set of minimizer hash values. If `circular`, the sequence
+  // is treated as wrapping (k-1 extra bases appended) so rotation doesn't change the set.
+  function minimizerSketch(seq, k, w, circular) {
+    var s = circular ? seq + seq.slice(0, Math.max(0, k - 1)) : seq;
+    var n = s.length - k + 1;
+    if (n <= 0) return new Set();
+    var hashes = new Array(n);
+    for (var i = 0; i < n; i++) hashes[i] = hashKmer(s, i, k);
+    var set = new Set();
+    if (n <= w) {
+      for (i = 0; i < n; i++) set.add(hashes[i]);
+      return set;
+    }
+    for (i = 0; i + w <= n; i++) {
+      var min = hashes[i], minIdx = i;
+      for (var j = 1; j < w; j++) if (hashes[i + j] < min) { min = hashes[i + j]; minIdx = i + j; }
+      set.add(min);
+    }
+    return set;
+  }
+
+  function sketchSimilarity(setA, setB) {
+    if (setA.size === 0 || setB.size === 0) return 0;
+    var inter = 0;
+    var small = setA.size < setB.size ? setA : setB;
+    var big = setA.size < setB.size ? setB : setA;
+    small.forEach(function (h) { if (big.has(h)) inter++; });
+    // containment relative to the smaller sketch, blended with symmetric Jaccard
+    var containment = inter / small.size;
+    var jaccard = inter / (setA.size + setB.size - inter);
+    return 0.6 * containment + 0.4 * jaccard;
+  }
+
+  // Best similarity of `query` against `ref` (tests ref forward + reverse complement,
+  // and treats ref as circular if refCircular).
+  function bestSimilarity(querySeq, refSeq, refCircular, k, w) {
+    k = k || 15; w = w || 10;
+    var qSet = minimizerSketch(querySeq, k, w, false);
+    var refFwd = minimizerSketch(refSeq, k, w, !!refCircular);
+    var refRev = minimizerSketch(reverseComplement(refSeq), k, w, !!refCircular);
+    var simF = sketchSimilarity(qSet, refFwd);
+    var simR = sketchSimilarity(qSet, refRev);
+    return { similarity: Math.max(simF, simR), orientation: simF >= simR ? 'forward' : 'reverse' };
+  }
+
+  // ---------------------------------------------------------------------
+  // Exact k-mer seeding + anchor chaining for the real alignment
+  // ---------------------------------------------------------------------
+  function buildKmerIndex(seq, k) {
+    var idx = new Map();
+    var n = seq.length - k + 1;
+    for (var i = 0; i < n; i++) {
+      var key = seq.substr(i, k);
+      if (key.indexOf('N') !== -1) continue; // skip ambiguous seeds, they're not reliable exact anchors
+      var arr = idx.get(key);
+      if (arr) arr.push(i); else idx.set(key, [i]);
+    }
+    return idx;
+  }
+
+  function findAnchors(query, refIndex, k, maxHitsPerKmer) {
+    maxHitsPerKmer = maxHitsPerKmer || 40;
+    var anchors = [];
+    var n = query.length - k + 1;
+    var step = n > 20000 ? Math.max(1, Math.floor(k / 3)) : 1; // sparser sampling for huge queries
+    for (var i = 0; i < n; i += step) {
+      var key = query.substr(i, k);
+      if (key.indexOf('N') !== -1) continue;
+      var hits = refIndex.get(key);
+      if (!hits || hits.length > maxHitsPerKmer) continue;
+      for (var h = 0; h < hits.length; h++) anchors.push({ q: i, r: hits[h] });
+    }
+    return anchors;
+  }
+
+  // Bucket anchors by diagonal (r-q) into candidate clusters (bucket width = 2*radius
+  // so nearby diagonals merge into one cluster).
+  function clusterAnchorsByDiagonal(anchors, radius) {
+    if (anchors.length === 0) return [];
+    var buckets = new Map(); // bucketKey -> anchors[]
+    var bw = Math.max(1, radius * 2);
+    anchors.forEach(function (a) {
+      var d = a.r - a.q;
+      var key = Math.round(d / bw);
+      var arr = buckets.get(key);
+      if (arr) arr.push(a); else buckets.set(key, [a]);
+    });
+    // merge neighboring bucket keys (key, key+1) to avoid splitting a real cluster at a boundary
+    var keys = Array.from(buckets.keys()).sort(function (a, b) { return a - b; });
+    var used = new Set();
+    var clusters = [];
+    keys.forEach(function (kk) {
+      if (used.has(kk)) return;
+      var group = buckets.get(kk).slice();
+      if (buckets.has(kk + 1)) { group = group.concat(buckets.get(kk + 1)); used.add(kk + 1); }
+      group.sort(function (a, b) { return a.q - b.q; });
+      var rs = group.map(function (a) { return a.r; });
+      clusters.push({
+        anchors: group,
+        minQ: group[0].q,
+        maxQ: group[group.length - 1].q,
+        minR: Math.min.apply(null, rs),
+        maxR: Math.max.apply(null, rs),
+        weight: group.length
+      });
+    });
+    return clusters;
+  }
+
+  // Colinear-chain the diagonal clusters: a single indel (of ANY size — a designed
+  // insert/marker swap, not just a small scar) splits real anchors into two clusters at
+  // different diagonals. Picking only the single best-supported cluster would silently
+  // drop the other side of a genuine large indel and let the DP smear it into a run of
+  // false small mismatches/indels instead — exactly the "confidently wrong" failure this
+  // tool must avoid. So instead of taking one cluster, chain together every cluster that
+  // is mutually consistent (monotonically increasing in both query and reference
+  // position, i.e. same strand / forward progress with no size cap on the gap between
+  // them) and use the chain with the greatest total anchor support.
+  function chainAnchorClusters(clusters, slop) {
+    if (clusters.length === 0) return [];
+    var sorted = clusters.slice().sort(function (a, b) { return a.minQ - b.minQ; });
+    var n = sorted.length;
+    var best = new Array(n);
+    var prev = new Array(n).fill(-1);
+    for (var i = 0; i < n; i++) {
+      best[i] = sorted[i].weight;
+      for (var j = 0; j < i; j++) {
+        if (sorted[j].maxQ <= sorted[i].minQ + slop && sorted[j].maxR <= sorted[i].minR + slop) {
+          var cand = best[j] + sorted[i].weight;
+          if (cand > best[i]) { best[i] = cand; prev[i] = j; }
+        }
+      }
+    }
+    var bi = 0;
+    for (i = 1; i < n; i++) if (best[i] > best[bi]) bi = i;
+    var chainIdx = [];
+    while (bi !== -1) { chainIdx.push(bi); bi = prev[bi]; }
+    chainIdx.reverse();
+    var merged = [];
+    chainIdx.forEach(function (idx) { merged = merged.concat(sorted[idx].anchors); });
+    merged.sort(function (a, b) { return a.q - b.q; });
+    return merged;
+  }
+
+  function bestAnchorChain(anchors, radius, slop) {
+    var clusters = clusterAnchorsByDiagonal(anchors, radius);
+    return chainAnchorClusters(clusters, slop);
+  }
+
+  // ---------------------------------------------------------------------
+  // Banded, affine-gap, four-end-free (glocal) alignment over a cropped window
+  // ---------------------------------------------------------------------
+  // gapOpen is deliberately steep relative to match/mismatch: a shallow gap-open cost
+  // lets the DP "save" a couple of points by fragmenting one genuine indel into several
+  // gap-open events plus a few incidental short random matches inside the gap region —
+  // mathematically optimal under the scoring, but a fragmented, confusing report of what
+  // should be one clean indel. A steep gapOpen (with a gentle gapExtend so the true
+  // indel's own length isn't over-penalized) makes reopening only pay off when there is
+  // real, substantial matching evidence to justify it.
+  var DEFAULT_SCORING = { match: 2, ambiguous: 1, mismatch: -8, gapOpen: -30, gapExtend: -0.5 };
+
+  function computeBand(anchorsLocal, qLen, rLen, baseRadius) {
+    // anchorsLocal: [{q,r}] sorted by q, already in local (cropped) coordinates.
+    var lo = new Int32Array(qLen + 1);
+    var hi = new Int32Array(qLen + 1);
+    if (anchorsLocal.length === 0) {
+      for (var i = 0; i <= qLen; i++) { lo[i] = 0; hi[i] = rLen; }
+      return { lo: lo, hi: hi };
+    }
+    // Build breakpoints list including extrapolated ends
+    var pts = anchorsLocal.map(function (a) { return { q: a.q, r: a.r }; });
+    for (var i = 0; i <= qLen; i++) {
+      var predR, radius;
+      if (i <= pts[0].q) {
+        var diag0 = pts[0].r - pts[0].q;
+        predR = i + diag0;
+        radius = baseRadius;
+      } else if (i >= pts[pts.length - 1].q) {
+        var diagN = pts[pts.length - 1].r - pts[pts.length - 1].q;
+        predR = i + diagN;
+        radius = baseRadius;
+      } else {
+        // find bracketing anchors
+        var lo2 = 0, hi2 = pts.length - 1;
+        while (hi2 - lo2 > 1) {
+          var mid = (lo2 + hi2) >> 1;
+          if (pts[mid].q <= i) lo2 = mid; else hi2 = mid;
+        }
+        var A = pts[lo2], B = pts[hi2];
+        var frac = (B.q === A.q) ? 0 : (i - A.q) / (B.q - A.q);
+        predR = A.r + frac * (B.r - A.r);
+        var diagA = A.r - A.q, diagB = B.r - B.q;
+        radius = Math.max(baseRadius, Math.abs(diagB - diagA) / 2 + baseRadius);
+      }
+      var lov = Math.min(rLen, Math.max(0, Math.floor(predR - radius)));
+      var hiv = Math.max(0, Math.min(rLen, Math.ceil(predR + radius)));
+      if (hiv < lov) hiv = lov;
+      lo[i] = lov; hi[i] = hiv;
+    }
+    return { lo: lo, hi: hi };
+  }
+
+  var NEG = -1e15;
+
+  // Semi-global (all four ends free) banded affine-gap alignment of q (local window) vs r (local window).
+  function bandedGlocalAlign(q, r, band, scoring) {
+    var n = q.length, m = r.length;
+    var lo = band.lo, hi = band.hi;
+    // Row-major sparse storage keyed by [i] -> Float64Array sized (hi[i]-lo[i]+1)
+    var M = new Array(n + 1), Ix = new Array(n + 1), Iy = new Array(n + 1);
+    for (var i = 0; i <= n; i++) {
+      var w = hi[i] - lo[i] + 1;
+      M[i] = new Float64Array(w).fill(NEG);
+      Ix[i] = new Float64Array(w).fill(NEG);
+      Iy[i] = new Float64Array(w).fill(NEG);
+    }
+    // free-start: row 0 and any cell where j===0 get M=0
+    for (var j = lo[0]; j <= hi[0]; j++) M[0][j - lo[0]] = 0;
+    for (i = 1; i <= n; i++) {
+      if (lo[i] === 0) M[i][0] = 0; // column 0 free start, when in band
+    }
+
+    function getM(i, j) { if (j < lo[i] || j > hi[i]) return NEG; return M[i][j - lo[i]]; }
+    function getIx(i, j) { if (j < lo[i] || j > hi[i]) return NEG; return Ix[i][j - lo[i]]; }
+    function getIy(i, j) { if (j < lo[i] || j > hi[i]) return NEG; return Iy[i][j - lo[i]]; }
+
+    for (i = 1; i <= n; i++) {
+      var loI = lo[i], hiI = hi[i];
+      for (j = loI; j <= hiI; j++) {
+        var idx = j - loI;
+        // M: diagonal move, consumes q[i-1], r[j-1]
+        if (j >= 1) {
+          var s = scoreBases(q[i - 1], r[j - 1], scoring);
+          var diagBest = Math.max(getM(i - 1, j - 1), getIx(i - 1, j - 1), getIy(i - 1, j - 1));
+          M[i][idx] = (diagBest <= NEG / 2) ? (j - 1 === -1 ? s : NEG) : diagBest + s;
+          if (j - 1 < lo[i - 1] || j - 1 > hi[i - 1]) {
+            // previous diagonal cell outside band: only valid if this is effectively a free-start cell
+            M[i][idx] = NEG;
+          }
+        } else {
+          M[i][idx] = NEG;
+        }
+        // Ix: consumes q[i-1] only (gap in r) — vertical move
+        var openX = getM(i - 1, j) + scoring.gapOpen;
+        var extX = getIx(i - 1, j) + scoring.gapExtend;
+        Ix[i][idx] = Math.max(openX, extX);
+        // Iy: consumes r[j-1] only (gap in q) — horizontal move
+        var openY = (j >= 1) ? getM(i, j - 1) + scoring.gapOpen : NEG;
+        var extY = (j >= 1) ? getIy(i, j - 1) + scoring.gapExtend : NEG;
+        Iy[i][idx] = Math.max(openY, extY);
+      }
+      if (lo[i] === 0 && M[i][0] < 0) M[i][0] = 0; // keep column-0 free-start valid across rows
+    }
+
+    // free-end: best over last row (i=n) and over column j=m wherever in band
+    var best = -Infinity, bestI = n, bestJ = hi[n];
+    for (j = lo[n]; j <= hi[n]; j++) {
+      var v = Math.max(getM(n, j), getIx(n, j), getIy(n, j));
+      if (v > best) { best = v; bestI = n; bestJ = j; }
+    }
+    for (i = 0; i <= n; i++) {
+      if (hi[i] === m) {
+        var v2 = Math.max(getM(i, m), getIx(i, m), getIy(i, m));
+        if (v2 > best) { best = v2; bestI = i; bestJ = m; }
+      }
+    }
+
+    // Traceback. Free-start means M[0][*] and M[i][0] (within band) are the zero-cost
+    // boundary: the moment either coordinate reaches 0, we've arrived at that boundary
+    // and must stop — there is no cell at index -1 to continue into, and any remaining
+    // prefix of the longer sequence is simply the free unaligned overhang (excluded from
+    // the reported alignment, not padded with gap columns).
+    var opsQ = [], opsR = [];
+    var ci = bestI, cj = bestJ;
+    var state;
+    if (ci === 0 || cj === 0) {
+      state = null; // nothing to trace back; bestI/bestJ already at a free boundary
+    } else {
+      var mv = getM(ci, cj), ixv = getIx(ci, cj), iyv = getIy(ci, cj);
+      state = (mv >= ixv && mv >= iyv) ? 'M' : (ixv >= iyv ? 'Ix' : 'Iy');
+    }
+    var guard = 0, guardMax = (n + m + 5) * 4;
+    while (ci > 0 && cj > 0 && guard++ < guardMax) {
+      if (state === 'M') {
+        var dM = getM(ci - 1, cj - 1), dIx = getIx(ci - 1, cj - 1), dIy = getIy(ci - 1, cj - 1);
+        opsQ.push(q[ci - 1]); opsR.push(r[cj - 1]);
+        ci -= 1; cj -= 1;
+        state = (dM >= dIx && dM >= dIy) ? 'M' : (dIx >= dIy ? 'Ix' : 'Iy');
+      } else if (state === 'Ix') {
+        var fromM = getM(ci - 1, cj) + scoring.gapOpen;
+        var fromIx = getIx(ci - 1, cj) + scoring.gapExtend;
+        opsQ.push(q[ci - 1]); opsR.push('-');
+        ci -= 1;
+        state = (fromIx >= fromM) ? 'Ix' : 'M';
+      } else { // Iy
+        var fromM2 = getM(ci, cj - 1) + scoring.gapOpen;
+        var fromIy2 = getIy(ci, cj - 1) + scoring.gapExtend;
+        opsQ.push('-'); opsR.push(r[cj - 1]);
+        cj -= 1;
+        state = (fromIy2 >= fromM2) ? 'Iy' : 'M';
+      }
+    }
+    opsQ.reverse(); opsR.reverse();
+    return {
+      score: best,
+      alignedQ: opsQ.join(''),
+      alignedR: opsR.join(''),
+      qStart: ci, qEnd: bestI, // local coords, half-open [qStart,qEnd)
+      rStart: cj, rEnd: bestJ
+    };
+  }
+
+  // ---------------------------------------------------------------------
+  // High level: align one query against one reference (linear or circular),
+  // trying both orientations, returning a normalized report.
+  // ---------------------------------------------------------------------
+  var MIN_ANCHORS_FOR_CONFIDENCE = 3;
+
+  function alignOneOrientation(querySeq, refSeqForIndex, refIsDoubled, refOriginalLen, opts) {
+    var k = opts.seedK || (refSeqForIndex.length < 300 ? 9 : 13);
+    // Band radius covers small/typical indels (a handful to a few dozen bp at GGA/HiFi
+    // junctions); large jumps between two real matches are handled by the per-segment
+    // adaptive widening in computeBand, not by inflating this base value with sequence
+    // length (that would blow up the O(n*band) DP cost on long plasmids for no benefit).
+    var baseRadius = opts.baseRadius || Math.max(25, Math.round(0.0015 * Math.max(querySeq.length, refSeqForIndex.length)));
+    baseRadius = Math.min(baseRadius, 120);
+
+    var refIndex = buildKmerIndex(refSeqForIndex, k);
+    var rawAnchors = findAnchors(querySeq, refIndex, k);
+    if (rawAnchors.length < MIN_ANCHORS_FOR_CONFIDENCE) return null;
+    var bucket = bestAnchorChain(rawAnchors, baseRadius, baseRadius + k);
+    if (bucket.length < MIN_ANCHORS_FOR_CONFIDENCE) return null;
+
+    var margin = baseRadius + k;
+    var qLo = Math.max(0, bucket[0].q - margin);
+    var qHi = Math.min(querySeq.length, bucket[bucket.length - 1].q + k + margin);
+    var rMinAnchor = Math.min.apply(null, bucket.map(function (a) { return a.r; }));
+    var rMaxAnchor = Math.max.apply(null, bucket.map(function (a) { return a.r; }));
+    var rLo = Math.max(0, rMinAnchor - margin);
+    var rHi = Math.min(refSeqForIndex.length, rMaxAnchor + k + margin);
+
+    var qWin = querySeq.slice(qLo, qHi);
+    var rWin = refSeqForIndex.slice(rLo, rHi);
+    var localAnchors = bucket.map(function (a) { return { q: a.q - qLo, r: a.r - rLo }; })
+      .filter(function (a) { return a.q >= 0 && a.q <= qWin.length && a.r >= 0 && a.r <= rWin.length; });
+
+    var band = computeBand(localAnchors, qWin.length, rWin.length, baseRadius);
+    var scoring = opts.scoring || DEFAULT_SCORING;
+    var res = bandedGlocalAlign(qWin, rWin, band, scoring);
+
+    var absRefStart = rLo + res.rStart;
+    var absRefEnd = rLo + res.rEnd;
+    var absQueryStart = qLo + res.qStart;
+    var absQueryEnd = qLo + res.qEnd;
+
+    return {
+      score: res.score,
+      alignedQ: res.alignedQ,
+      alignedR: res.alignedR,
+      queryStart: absQueryStart,
+      queryEnd: absQueryEnd,
+      refStart: absRefStart, // in refSeqForIndex coords (doubled coords if circular)
+      refEnd: absRefEnd,
+      anchorCount: bucket.length,
+      seedK: k
+    };
+  }
+
+  function summarizeAlignment(alignment, queryLen, refLen, circular) {
+    var aq = alignment.alignedQ, ar = alignment.alignedR;
+    var mismatches = [], insertions = [], deletions = [], ambiguous = [];
+    var exactMatches = 0, ambiguousMatches = 0;
+    var refPos = alignment.refStart; // may be >= refLen for doubled coords; caller passes appropriate refLen for modulo
+    var curIns = null, curDel = null;
+    for (var i = 0; i < aq.length; i++) {
+      var qc = aq[i], rc = ar[i];
+      if (qc !== '-' && rc !== '-') {
+        if (curIns) { insertions.push(curIns); curIns = null; }
+        if (curDel) { deletions.push(curDel); curDel = null; }
+        var cls = classifyBases(qc, rc);
+        if (cls === 'match') exactMatches++;
+        else if (cls === 'ambiguous') { ambiguousMatches++; ambiguous.push({ refPos: mod(refPos, refLen), refBase: rc, queryBase: qc, type: 'ambiguous' }); }
+        else mismatches.push({ refPos: mod(refPos, refLen), refBase: rc, queryBase: qc, type: 'substitution' });
+        refPos++;
+      } else if (rc === '-') {
+        // insertion: extra base in query, not in reference
+        if (!curIns) curIns = { refPos: mod(refPos, refLen), size: 0, bases: '' };
+        curIns.size++; curIns.bases += qc;
+        if (curDel) { deletions.push(curDel); curDel = null; }
+      } else if (qc === '-') {
+        // deletion: reference base missing from query
+        if (!curDel) curDel = { refPos: mod(refPos, refLen), size: 0, bases: '' };
+        curDel.size++; curDel.bases += rc;
+        refPos++;
+        if (curIns) { insertions.push(curIns); curIns = null; }
+      }
+    }
+    if (curIns) insertions.push(curIns);
+    if (curDel) deletions.push(curDel);
+    var alignedLength = aq.length;
+    var identityDenom = exactMatches + ambiguousMatches + mismatches.length +
+      insertions.reduce(function (s, x) { return s + x.size; }, 0) +
+      deletions.reduce(function (s, x) { return s + x.size; }, 0);
+    var percentIdentity = alignedLength > 0 ? (100 * (exactMatches + ambiguousMatches) / alignedLength) : 0;
+    return {
+      alignedLength: alignedLength,
+      exactMatches: exactMatches,
+      ambiguousMatches: ambiguousMatches,
+      mismatches: mismatches,
+      insertions: insertions,
+      deletions: deletions,
+      ambiguous: ambiguous,
+      percentIdentity: percentIdentity,
+      indelCount: insertions.length + deletions.length
+    };
+  }
+
+  function mod(a, n) { if (!n) return a; var r = a % n; return r < 0 ? r + n : r; }
+
+  // Public entry point.
+  // referenceObj: {seq, length, circular}
+  // queryObj: {seq, length}
+  function alignQueryToReference(queryObj, referenceObj, opts) {
+    opts = opts || {};
+    var refLen = referenceObj.length;
+    var circular = !!referenceObj.circular;
+    var candidates = [];
+
+    var orientations = [
+      { seq: queryObj.seq, label: 'forward' },
+      { seq: reverseComplement(queryObj.seq), label: 'reverse_complement' }
+    ];
+
+    orientations.forEach(function (o) {
+      var refForIndex = circular ? referenceObj.seq + referenceObj.seq : referenceObj.seq;
+      var res = alignOneOrientation(o.seq, refForIndex, circular, refLen, opts);
+      if (res) {
+        res.orientation = o.label;
+        res.queryLenUsed = o.seq.length;
+        candidates.push(res);
+      }
+    });
+
+    if (candidates.length === 0) {
+      return { noConfidentMatch: true, reason: 'No seed matches found in either orientation above the confidence threshold.' };
+    }
+    candidates.sort(function (a, b) { return b.score - a.score; });
+    var best = candidates[0];
+
+    var summary = summarizeAlignment(best, queryObj.length, refLen, circular);
+    var rotationOffset = circular ? mod(best.refStart, refLen) : null;
+
+    // similarity sanity threshold: require identity within aligned region reasonably high
+    // and a minimum anchored fraction, otherwise flag as low confidence rather than hiding it.
+    var lowConfidence = summary.percentIdentity < 70 || best.anchorCount < MIN_ANCHORS_FOR_CONFIDENCE;
+
+    return {
+      noConfidentMatch: false,
+      lowConfidence: lowConfidence,
+      orientation: best.orientation,
+      rotationOffset: rotationOffset,
+      refLen: refLen,
+      queryLen: queryObj.length,
+      queryLenUsed: best.queryLenUsed,
+      alignedQueryStart: best.queryStart,
+      alignedQueryEnd: best.queryEnd,
+      alignedRefStart: mod(best.refStart, refLen),
+      alignedRefEnd: mod(best.refEnd - 1, refLen) + 1,
+      rawRefStart: best.refStart,
+      rawRefEnd: best.refEnd,
+      alignedQ: best.alignedQ,
+      alignedR: best.alignedR,
+      score: best.score,
+      anchorCount: best.anchorCount,
+      seedK: best.seedK,
+      percentIdentity: summary.percentIdentity,
+      alignedLength: summary.alignedLength,
+      exactMatches: summary.exactMatches,
+      ambiguousMatches: summary.ambiguousMatches,
+      mismatches: summary.mismatches,
+      insertions: summary.insertions,
+      deletions: summary.deletions,
+      ambiguous: summary.ambiguous,
+      indelCount: summary.indelCount
+    };
+  }
+
+  // Build a corrected FASTA: query re-oriented to reference strand and, if circular,
+  // rotated so it starts at the reference's origin (position 0).
+  //
+  // Mapping (assuming near-uniform offset, i.e. ignoring small indel drift, which is an
+  // acceptable approximation for a convenience "re-linearize to origin" export):
+  //   seq[alignedQueryStart] corresponds to ref position `rotationOffset`.
+  // We want new[0] to correspond to ref position 0, so we rotate seq left by:
+  //   i0 = (alignedQueryStart - rotationOffset) mod seq.length
+  function buildCorrectedQueryFasta(queryObj, referenceObj, alignResult) {
+    var seq = queryObj.seq;
+    if (alignResult.orientation === 'reverse_complement') seq = reverseComplement(seq);
+    if (referenceObj.circular && alignResult.rotationOffset != null && seq.length > 0) {
+      var i0 = mod(alignResult.alignedQueryStart - alignResult.rotationOffset, seq.length);
+      seq = seq.slice(i0) + seq.slice(0, i0);
+    }
+    return seq;
+  }
+
+  var AlignCore = {
+    reverseComplement: reverseComplement,
+    classifyBases: classifyBases,
+    validateSequence: validateSequence,
+    parseFasta: parseFasta,
+    parseGenBank: parseGenBank,
+    detectFormatAndParse: detectFormatAndParse,
+    minimizerSketch: minimizerSketch,
+    sketchSimilarity: sketchSimilarity,
+    bestSimilarity: bestSimilarity,
+    buildKmerIndex: buildKmerIndex,
+    findAnchors: findAnchors,
+    clusterAnchorsByDiagonal: clusterAnchorsByDiagonal,
+    chainAnchorClusters: chainAnchorClusters,
+    bestAnchorChain: bestAnchorChain,
+    computeBand: computeBand,
+    bandedGlocalAlign: bandedGlocalAlign,
+    alignQueryToReference: alignQueryToReference,
+    buildCorrectedQueryFasta: buildCorrectedQueryFasta,
+    mod: mod,
+    DEFAULT_SCORING: DEFAULT_SCORING
+  };
+
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = AlignCore;
+  } else {
+    root.AlignCore = AlignCore;
+  }
+})(typeof self !== 'undefined' ? self : this);
+
+</script>
+<script>
+(function () {
+'use strict';
+
+// ===========================================================================
+// Utilities
+// ===========================================================================
+var uidCounter = 1;
+function uid(prefix) { return (prefix || 'u') + (uidCounter++); }
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+function fmtInt(n) { return (n == null) ? '—' : Number(n).toLocaleString('en-US'); }
+function fmtPct(n) { return (n == null) ? '—' : (Math.round(n * 100) / 100).toFixed(2) + '%'; }
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+function downloadBlob(blob, filename) {
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 1000);
+}
+function downloadText(text, filename, mime) {
+  downloadBlob(new Blob([text], { type: mime || 'text/plain' }), filename);
+}
+
+function toast(msg, isErr) {
+  var stack = document.getElementById('toast-stack');
+  var el = document.createElement('div');
+  el.className = 'toast' + (isErr ? ' err' : '');
+  el.textContent = msg;
+  stack.appendChild(el);
+  setTimeout(function () {
+    el.style.transition = 'opacity .25s';
+    el.style.opacity = '0';
+    setTimeout(function () { el.remove(); }, 260);
+  }, 3400);
+}
+
+// Colorblind-safe accent palette (Okabe-Ito derived), consistent with CSS custom props.
+var VIZ = {
+  mismatch: '#B5480A',
+  insertion: '#0B6FA8',
+  deletion: '#8A3A78',
+  ambiguous: '#9A7B00',
+  match: '#CFE0D3',
+  matchStrong: '#0C7A4E',
+  refBase: '#E7ECF0',
+  queryBase: '#F3F5F7'
+};
+
+// ===========================================================================
+// Application state
+// ===========================================================================
+var State = {
+  records: { query: [], reference: [] },
+  pairs: [], // {uid, queryUid, refUid, confidence, basis, status, result}
+  currentPairUid: null,
+  view: 'import',
+  worker: null,
+  workerReady: false,
+  sketchCache: new Map(), // recordUid -> {fwd:Set, rev:Set}
+  sortCol: 'refPos',
+  sortDir: 1,
+  trackViews: new Map() // pairUid -> {pxPerBase, scrollLeft}
+};
+
+function getRecord(uid) {
+  return State.records.query.find(function (r) { return r.uid === uid; }) ||
+         State.records.reference.find(function (r) { return r.uid === uid; });
+}
+function includedRecords(zone) {
+  return State.records[zone].filter(function (r) { return r.included; });
+}
+
+// ===========================================================================
+// Import: file / paste handling
+// ===========================================================================
+function guessCircular(rec) {
+  if (rec.topology === 'circular') return true;
+  if (rec.topology === 'linear') return false;
+  var hay = ((rec.id || '') + ' ' + (rec.description || '')).toLowerCase();
+  if (/(insert|fragment|amplicon|pcr|gblock|gene\s*block|linear)/.test(hay)) return false;
+  return true; // default assumption: looks like a vector/plasmid
+}
+
+function addRecordsFromText(zone, text, sourceName) {
+  var parsed;
+  try {
+    parsed = AlignCore.detectFormatAndParse(text, sourceName);
+  } catch (err) {
+    toast('Could not parse "' + sourceName + '": ' + err.message, true);
+    return [];
+  }
+  if (parsed.length === 0) {
+    toast('"' + sourceName + '" has no recognizable sequence — check that it is FASTA or GenBank text, not a binary export.', true);
+    return [];
+  }
+  var added = [];
+  parsed.forEach(function (p) {
+    if (!p.seq || p.seq.length === 0) {
+      toast('Skipped "' + (p.id || sourceName) + '": no valid nucleotide sequence found.', true);
+      return;
+    }
+    var rec = {
+      uid: uid('rec'),
+      zone: zone,
+      id: p.id,
+      description: p.description || '',
+      seq: p.seq,
+      length: p.length,
+      invalidChars: p.invalidChars,
+      features: p.features || [],
+      topology: p.topology,
+      sourceFile: sourceName,
+      format: p.format,
+      included: true
+    };
+    if (zone === 'reference') rec.circular = guessCircular(rec);
+    State.records[zone].push(rec);
+    added.push(rec);
+  });
+  return added;
+}
+
+function handleFileList(zone, files) {
+  var readers = [];
+  Array.prototype.forEach.call(files, function (file) {
+    readers.push(new Promise(function (resolve) {
+      var r = new FileReader();
+      r.onload = function () { resolve({ name: file.name, text: r.result }); };
+      r.onerror = function () { toast('Could not read file "' + file.name + '".', true); resolve(null); };
+      r.readAsText(file);
+    }));
+  });
+  Promise.all(readers).then(function (results) {
+    var anyAdded = false;
+    results.forEach(function (r) {
+      if (!r) return;
+      var added = addRecordsFromText(zone, r.text, r.name);
+      if (added.length) anyAdded = true;
+    });
+    if (anyAdded) {
+      renderRecordList(zone);
+      refreshMatchingUI();
+    }
+  });
+}
+
+// ===========================================================================
+// Record list rendering (import view)
+// ===========================================================================
+function renderRecordList(zone) {
+  var container = document.querySelector('.record-list[data-zone="' + zone + '"]');
+  var recs = State.records[zone];
+  if (recs.length === 0) { container.innerHTML = ''; return; }
+  container.innerHTML = recs.map(function (r) {
+    var warn = (r.invalidChars && r.invalidChars.size > 0)
+      ? '<span class="r-warn" title="Non-IUPAC characters found and ignored: ' +
+        escapeHtml(Array.from(r.invalidChars.entries()).map(function (e) { return e[0] + '×' + e[1]; }).join(', ')) +
+        '">⚠ invalid chars</span>' : '';
+    var topo = '';
+    if (zone === 'reference') {
+      topo = '<span class="topo-toggle" data-rec="' + r.uid + '">' +
+        '<button data-topo="circular" class="' + (r.circular ? 'active' : '') + '">Circular</button>' +
+        '<button data-topo="linear" class="' + (!r.circular ? 'active' : '') + '">Linear</button>' +
+        '</span>';
+    }
+    return '<div class="record-row' + (r.included ? '' : ' excluded') + '" data-rec="' + r.uid + '">' +
+      '<input type="checkbox" ' + (r.included ? 'checked' : '') + ' data-toggle-included="' + r.uid + '">' +
+      '<span class="r-id" title="' + escapeHtml(r.id) + '">' + escapeHtml(r.id) + '</span>' +
+      '<span class="r-desc" title="' + escapeHtml(r.description) + '">' + escapeHtml(r.description || (r.format === 'genbank' ? 'GenBank record' : 'FASTA record')) + '</span>' +
+      '<span class="r-len">' + fmtInt(r.length) + ' bp</span>' +
+      warn + topo +
+      '</div>';
+  }).join('');
+}
+
+document.addEventListener('change', function (e) {
+  var t = e.target;
+  if (t.matches('[data-toggle-included]')) {
+    var rec = getRecord(t.getAttribute('data-toggle-included'));
+    rec.included = t.checked;
+    renderRecordList(rec.zone);
+    refreshMatchingUI();
+  }
+});
+document.addEventListener('click', function (e) {
+  var topoBtn = e.target.closest('[data-topo]');
+  if (topoBtn) {
+    var wrap = topoBtn.closest('.topo-toggle');
+    var rec = getRecord(wrap.getAttribute('data-rec'));
+    var wasCircular = rec.circular;
+    rec.circular = topoBtn.getAttribute('data-topo') === 'circular';
+    if (wasCircular !== rec.circular) invalidateResultsForReference(rec.uid);
+    renderRecordList('reference');
+    refreshMatchingUI();
+  }
+});
+
+function invalidateResultsForReference(refUid) {
+  State.pairs.forEach(function (p) {
+    if (p.refUid === refUid) { p.status = 'pending'; p.result = null; }
+  });
+}
+
+// ===========================================================================
+// Auto-matching (k-mer sketch pre-filter, main thread — fast enough to be instant)
+// ===========================================================================
+function getSketch(rec) {
+  if (State.sketchCache.has(rec.uid)) return State.sketchCache.get(rec.uid);
+  var fwd = AlignCore.minimizerSketch(rec.seq, 15, 10, rec.zone === 'reference' && !!rec.circular);
+  var rev = AlignCore.minimizerSketch(AlignCore.reverseComplement(rec.seq), 15, 10, rec.zone === 'reference' && !!rec.circular);
+  var entry = { fwd: fwd, rev: rev };
+  State.sketchCache.set(rec.uid, entry);
+  return entry;
+}
+
+function similarityBetween(queryRec, refRec) {
+  var qs = getSketch(queryRec);
+  var simF = AlignCore.sketchSimilarity(qs.fwd, getSketch(refRec).fwd);
+  var simR = AlignCore.sketchSimilarity(qs.fwd, getSketch(refRec).rev);
+  return simF >= simR ? { similarity: simF, orientation: 'forward' } : { similarity: simR, orientation: 'reverse_complement' };
+}
+
+function computeAutoPairs() {
+  var queries = includedRecords('query');
+  var refs = includedRecords('reference');
+  var existingByQuery = new Map();
+  State.pairs.forEach(function (p) { existingByQuery.set(p.queryUid, p); });
+
+  var newPairs = [];
+  queries.forEach(function (q) {
+    var existing = existingByQuery.get(q.uid);
+    if (existing && existing.basis === 'manual' && refs.some(function (r) { return r.uid === existing.refUid; })) {
+      newPairs.push(existing);
+      return;
+    }
+    if (refs.length === 0) return;
+    var best = null;
+    refs.forEach(function (r) {
+      var sim = similarityBetween(q, r);
+      if (!best || sim.similarity > best.similarity) best = { refUid: r.uid, similarity: sim.similarity, orientation: sim.orientation };
+    });
+    // If the best-matching reference hasn't actually changed since last time (e.g. this
+    // function re-runs because an unrelated record was toggled, or a saved session was
+    // just reimported), keep the existing pair object as-is so any alignment result it
+    // already holds survives. Only build a fresh pending pair when the pairing itself is
+    // new or has genuinely changed — otherwise every re-render of the matching UI would
+    // silently wipe completed alignments.
+    if (existing && existing.refUid === best.refUid && refs.some(function (r) { return r.uid === best.refUid; })) {
+      existing.confidence = best.similarity;
+      newPairs.push(existing);
+      return;
+    }
+    newPairs.push({
+      uid: (existing ? existing.uid : uid('pair')),
+      queryUid: q.uid,
+      refUid: best.refUid,
+      confidence: best.similarity,
+      basis: 'auto',
+      status: 'pending',
+      result: null
+    });
+  });
+  State.pairs = newPairs;
+}
+
+function renderMatchTable() {
+  var queries = includedRecords('query');
+  var refs = includedRecords('reference');
+  var panel = document.getElementById('panel-matching');
+  if (queries.length === 0 || refs.length === 0) { panel.style.display = 'none'; return; }
+  if (queries.length === 1 && refs.length === 1) {
+    // Skip straight to alignment: still keep a single implicit pair, but hide the table.
+    panel.style.display = 'none';
+    return;
+  }
+  panel.style.display = '';
+  var tbody = document.getElementById('match-table-body');
+  tbody.innerHTML = State.pairs.map(function (p) {
+    var q = getRecord(p.queryUid);
+    var pct = Math.round((p.confidence || 0) * 100);
+    var barColor = pct >= 70 ? '#0C7A4E' : (pct >= 35 ? '#9A7B00' : '#B5480A');
+    var options = refs.map(function (r) {
+      return '<option value="' + r.uid + '"' + (r.uid === p.refUid ? ' selected' : '') + '>' + escapeHtml(r.id) + '</option>';
+    }).join('');
+    var basisLabel = p.basis === 'manual' ? 'Manually selected' : 'k-mer sketch similarity (both strands)';
+    return '<tr>' +
+      '<td><b>' + escapeHtml(q.id) + '</b></td>' +
+      '<td>' + escapeHtml(getRecord(p.refUid) ? getRecord(p.refUid).id : '—') + '</td>' +
+      '<td><span class="confidence-bar"><span style="width:' + pct + '%;background:' + barColor + ';"></span></span>' + pct + '%</td>' +
+      '<td style="color:var(--text-faint);font-size:11.5px;">' + basisLabel + '</td>' +
+      '<td><select data-pair="' + p.uid + '">' + options + '</select></td>' +
+      '</tr>';
+  }).join('');
+}
+
+document.addEventListener('change', function (e) {
+  if (e.target.matches('[data-pair]')) {
+    var pair = State.pairs.find(function (p) { return p.uid === e.target.getAttribute('data-pair'); });
+    pair.refUid = e.target.value;
+    pair.basis = 'manual';
+    pair.confidence = null;
+    pair.status = 'pending'; pair.result = null;
+    renderMatchTable();
+  }
+});
+
+function refreshMatchingUI() {
+  var queries = includedRecords('query');
+  var refs = includedRecords('reference');
+  computeAutoPairs();
+  renderMatchTable();
+  document.getElementById('import-empty-state').style.display = (queries.length === 0 && refs.length === 0) ? '' : 'none';
+  document.getElementById('btn-align-all').disabled = !(queries.length > 0 && refs.length > 0);
+  document.getElementById('btn-clear-import').style.display = (queries.length > 0 || refs.length > 0) ? '' : 'none';
+}
+
+// ===========================================================================
+// Worker lifecycle
+// ===========================================================================
+function initWorker() {
+  var src = document.getElementById('worker-source').textContent;
+  var blob = new Blob([src], { type: 'application/javascript' });
+  var worker = new Worker(URL.createObjectURL(blob));
+  worker.onmessage = function (e) {
+    var msg = e.data;
+    if (msg.type === 'ready') { State.workerReady = true; return; }
+    if (msg.type === 'batchProgress') onBatchProgress(msg);
+    else if (msg.type === 'batchDone') onBatchDone(msg);
+    else if (msg.type === 'error') { toast('Alignment engine error: ' + msg.message, true); hideProgressOverlay(); }
+  };
+  worker.onerror = function (err) {
+    toast('Worker crashed: ' + err.message + '. Retrying with a fresh worker.', true);
+    hideProgressOverlay();
+    initWorker();
+  };
+  State.worker = worker;
+}
+
+function showProgressOverlay(title, sub) {
+  document.getElementById('progress-title').textContent = title;
+  document.getElementById('progress-sub').textContent = sub || '';
+  document.getElementById('progress-fill').style.width = '0%';
+  document.getElementById('align-progress-overlay').classList.add('open');
+}
+function hideProgressOverlay() {
+  document.getElementById('align-progress-overlay').classList.remove('open');
+}
+
+function onBatchProgress(msg) {
+  var pct = Math.round((msg.completed / msg.total) * 100);
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-sub').textContent = 'Aligned ' + msg.completed + ' of ' + msg.total + ' pairs…';
+  var pair = State.pairs.find(function (p) { return p.uid === msg.pairId; });
+  if (pair) { pair.result = msg.result; pair.status = msg.result.noConfidentMatch ? 'nomatch' : 'aligned'; }
+}
+function onBatchDone(msg) {
+  hideProgressOverlay();
+  toast('Alignment complete: ' + msg.results.length + ' pair' + (msg.results.length === 1 ? '' : 's') + ' processed.');
+  goToReview();
+}
+
+function runAlignment() {
+  if (State.pairs.length === 0) { toast('Nothing to align yet.', true); return; }
+  var jobs = [];
+  State.pairs.forEach(function (p) {
+    var q = getRecord(p.queryUid), r = getRecord(p.refUid);
+    if (!q || !r) return;
+    jobs.push({
+      pairId: p.uid,
+      query: { seq: q.seq, length: q.length },
+      reference: { seq: r.seq, length: r.length, circular: !!r.circular }
+    });
+  });
+  if (jobs.length === 0) { toast('No valid query/reference pairs to align.', true); return; }
+  showProgressOverlay('Aligning sequences…', 'Building k-mer index and seeding…');
+  State.worker.postMessage({ cmd: 'batchAlign', id: uid('job'), jobs: jobs });
+}
+
+// ===========================================================================
+// View switching
+// ===========================================================================
+function setView(view) {
+  State.view = view;
+  document.getElementById('view-import').classList.toggle('active', view === 'import');
+  document.getElementById('view-review').classList.toggle('active', view === 'review');
+  document.getElementById('nav-import').classList.toggle('active', view === 'import');
+  document.getElementById('nav-review').classList.toggle('active', view === 'review');
+  var mainEl = document.getElementById(view === 'import' ? 'view-import' : 'view-review');
+  mainEl.classList.remove('fade-enter'); void mainEl.offsetWidth; mainEl.classList.add('fade-enter');
+}
+
+function goToReview() {
+  document.getElementById('nav-review').disabled = false;
+  setView('review');
+  if (!State.currentPairUid && State.pairs.length) State.currentPairUid = State.pairs[0].uid;
+  renderSampleList();
+  renderSampleDetail();
+}
+
+document.getElementById('nav-import').addEventListener('click', function () { setView('import'); });
+document.getElementById('nav-review').addEventListener('click', function () { if (!this.disabled) goToReview(); });
+document.getElementById('btn-back-to-import').addEventListener('click', function () { setView('import'); });
+document.getElementById('btn-align-all').addEventListener('click', runAlignment);
+
+document.getElementById('btn-clear-import').addEventListener('click', function () {
+  if (!confirm('Clear all imported sequences and start over?')) return;
+  State.records.query = []; State.records.reference = [];
+  State.pairs = []; State.sketchCache.clear();
+  renderRecordList('query'); renderRecordList('reference');
+  refreshMatchingUI();
+});
+
+// ===========================================================================
+// Sample sidebar / review rendering
+// ===========================================================================
+function statusOf(pair) {
+  var r = pair.result;
+  if (!r) return 'pending';
+  if (r.noConfidentMatch || r.lowConfidence) return 'nomatch';
+  if (r.mismatches.length === 0 && r.indelCount === 0) return 'pass';
+  return 'attention';
+}
+var STATUS_META = {
+  pass: { color: 'var(--pass)', label: 'Match' },
+  attention: { color: 'var(--attention)', label: 'Attention' },
+  nomatch: { color: 'var(--nomatch)', label: 'No confident match' },
+  pending: { color: 'var(--text-faint)', label: 'Pending' }
+};
+function statusIconSvg(status, size) {
+  size = size || 16;
+  var s = STATUS_META[status];
+  if (status === 'pass') {
+    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="' + s.color + '"/><path d="M7 12.5l3 3 7-7" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  } else if (status === 'attention') {
+    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24"><path d="M12 2 L22 20 L2 20 Z" fill="' + s.color + '"/><rect x="11" y="8" width="2" height="6" fill="#fff"/><rect x="11" y="15.5" width="2" height="2" fill="#fff"/></svg>';
+  } else if (status === 'nomatch') {
+    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4" fill="' + s.color + '"/><path d="M9 9l6 6M15 9l-6 6" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>';
+  }
+  return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="' + s.color + '" stroke-width="2" stroke-dasharray="3 3"/></svg>';
+}
+
+function renderSampleList() {
+  var list = document.getElementById('sample-list');
+  document.getElementById('sample-count-label').textContent = State.pairs.length + ' sample' + (State.pairs.length === 1 ? '' : 's');
+  list.innerHTML = State.pairs.map(function (p) {
+    var q = getRecord(p.queryUid), r = getRecord(p.refUid);
+    var status = statusOf(p);
+    var pct = (p.result && !p.result.noConfidentMatch) ? fmtPct(p.result.percentIdentity) : '';
+    return '<div class="sample-item' + (p.uid === State.currentPairUid ? ' active' : '') + '" data-pair="' + p.uid + '" tabindex="0">' +
+      '<span class="s-icon">' + statusIconSvg(status, 18) + '</span>' +
+      '<span class="s-name" title="' + escapeHtml(q ? q.id : '?') + ' vs ' + escapeHtml(r ? r.id : '?') + '">' + escapeHtml(q ? q.id : '?') + '</span>' +
+      '<span class="s-pct">' + pct + '</span>' +
+      '</div>';
+  }).join('');
+}
+
+document.getElementById('sample-list').addEventListener('click', function (e) {
+  var item = e.target.closest('[data-pair]');
+  if (item) { State.currentPairUid = item.getAttribute('data-pair'); renderSampleList(); renderSampleDetail(); }
+});
+
+function currentPair() { return State.pairs.find(function (p) { return p.uid === State.currentPairUid; }); }
+
+function stepSample(delta) {
+  if (State.pairs.length === 0) return;
+  var idx = State.pairs.findIndex(function (p) { return p.uid === State.currentPairUid; });
+  idx = clamp(idx + delta, 0, State.pairs.length - 1);
+  State.currentPairUid = State.pairs[idx].uid;
+  renderSampleList(); renderSampleDetail();
+}
+document.getElementById('btn-prev-sample').addEventListener('click', function () { stepSample(-1); });
+document.getElementById('btn-next-sample').addEventListener('click', function () { stepSample(1); });
+
+// ===========================================================================
+// Column model (per-alignment-column ref/query coordinates + classification)
+// ===========================================================================
+function buildColumnModel(pair) {
+  var r = pair.result;
+  var refRec = getRecord(pair.refUid);
+  var refLen = r.refLen;
+  var n = r.alignedQ.length;
+  var refPos = new Array(n), queryPos = new Array(n), type = new Array(n);
+  var rp = r.rawRefStart, qp = r.alignedQueryStart;
+  for (var i = 0; i < n; i++) {
+    var qc = r.alignedQ[i], rc = r.alignedR[i];
+    if (qc !== '-' && rc !== '-') {
+      refPos[i] = AlignCore.mod(rp, refLen); queryPos[i] = qp;
+      type[i] = AlignCore.classifyBases(qc, rc);
+      rp++; qp++;
+    } else if (rc === '-') {
+      refPos[i] = null; queryPos[i] = qp; type[i] = 'insertion'; qp++;
+    } else {
+      refPos[i] = AlignCore.mod(rp, refLen); queryPos[i] = null; type[i] = 'deletion'; rp++;
+    }
+  }
+  return { refPos: refPos, queryPos: queryPos, type: type };
+}
+
+function featuresAtRefPos(refRec, refPos) {
+  if (!refRec.features || refPos == null) return [];
+  return refRec.features.filter(function (f) { return refPos >= f.start && refPos < f.end; });
+}
+
+// ===========================================================================
+// Status banner + stat row + variant table
+// ===========================================================================
+function statusBannerHtml(pair) {
+  var r = pair.result;
+  var status = statusOf(pair);
+  var title, sub;
+  if (status === 'nomatch') {
+    title = r.noConfidentMatch ? 'No confident match' : 'Low-confidence match';
+    // Surface uncertainty rather than hiding it: even when the full seed-and-extend
+    // alignment failed, the fast k-mer sketch pre-filter from the matching step already
+    // computed a rough similarity — show it so the user can judge whether this is "not
+    // the same molecule at all" vs. "close, but something is off" (e.g. wrong
+    // circular/linear setting, or a genuinely large rearrangement the aligner couldn't
+    // seed through).
+    var confBit = (pair.confidence != null)
+      ? (' The fastest pre-check (k-mer similarity) put this pairing at only ' + Math.round(pair.confidence * 100) + '% — ' +
+         (pair.confidence > 0.4 ? 'high enough that this might still be the right pairing with a wrong circular/linear setting or a large rearrangement.' : 'consistent with these simply being different sequences.'))
+      : '';
+    sub = r.noConfidentMatch
+      ? ((r.reason || 'No reliable seed alignment was found in either orientation.') + ' Check that the right reference is selected, and that the circular/linear setting is correct.' + confBit)
+      : ('Best alignment found is only ' + fmtPct(r.percentIdentity) + ' identity — this may not be the same construct, or the circular/linear setting may be wrong.');
+  } else if (status === 'pass') {
+    title = 'Matches design';
+    sub = '100% identity across the full ' + fmtInt(r.alignedLength) + ' bp aligned region — no differences found.';
+    if (r.ambiguous && r.ambiguous.length) {
+      sub += ' (' + r.ambiguous.length + ' position' + (r.ambiguous.length === 1 ? '' : 's') + ' had an ambiguous base call in the query — compatible with the reference, but not a confirmed exact match; see the table below.)';
+    }
+  } else {
+    title = 'Differs from design';
+    var bits = [];
+    if (r.mismatches.length) bits.push(r.mismatches.length + ' mismatch' + (r.mismatches.length === 1 ? '' : 'es'));
+    if (r.insertions.length) bits.push(r.insertions.length + ' insertion' + (r.insertions.length === 1 ? '' : 's'));
+    if (r.deletions.length) bits.push(r.deletions.length + ' deletion' + (r.deletions.length === 1 ? '' : 's'));
+    sub = bits.join(', ') + ' found — ' + fmtPct(r.percentIdentity) + ' identity overall. See details below.';
+  }
+  return '<div class="status-banner ' + status + '">' +
+    '<span class="icon">' + statusIconSvg(status, 44) + '</span>' +
+    '<div class="status-text"><b>' + escapeHtml(title) + '</b><span>' + escapeHtml(sub) + '</span></div>' +
+    '</div>';
+}
+
+function statRowHtml(pair) {
+  var r = pair.result;
+  var refRec = getRecord(pair.refUid);
+  if (r.noConfidentMatch) return '';
+  var cards = [
+    ['Percent identity', fmtPct(r.percentIdentity), 'over aligned region'],
+    ['Aligned length', fmtInt(r.alignedLength) + ' bp', 'of ' + fmtInt(r.refLen) + ' bp reference'],
+    ['Mismatches', fmtInt(r.mismatches.length), 'substitutions'],
+    ['Indels', fmtInt(r.indelCount), (r.insertions.length + ' ins / ' + r.deletions.length + ' del')],
+    ['Orientation', r.orientation === 'forward' ? 'Forward' : 'Reverse complement', 'relative to reference'],
+    [refRec.circular ? 'Rotation offset' : 'Topology', refRec.circular ? ('+' + fmtInt(r.rotationOffset) + ' bp') : 'Linear', refRec.circular ? 'vs. reference origin' : 'no rotation applies']
+  ];
+  return '<div class="stat-row">' + cards.map(function (c) {
+    return '<div class="stat-card"><div class="stat-label">' + c[0] + '</div><div class="stat-value">' + c[1] + '</div><div class="stat-sub">' + c[2] + '</div></div>';
+  }).join('') + '</div>';
+}
+
+function variantTableHtml(pair) {
+  var r = pair.result;
+  if (r.noConfidentMatch) return '';
+  var refRec = getRecord(pair.refUid);
+  var rows = [];
+  r.mismatches.forEach(function (m) { rows.push({ refPos: m.refPos, type: 'substitution', ref: m.refBase, query: m.queryBase, size: 1 }); });
+  r.insertions.forEach(function (m) { rows.push({ refPos: m.refPos, type: 'insertion', ref: '—', query: m.bases, size: m.size }); });
+  r.deletions.forEach(function (m) { rows.push({ refPos: m.refPos, type: 'deletion', ref: m.bases, query: '—', size: m.size }); });
+  var hardCount = rows.length;
+  (r.ambiguous || []).forEach(function (m) { rows.push({ refPos: m.refPos, type: 'ambiguous', ref: m.refBase, query: m.queryBase, size: 1 }); });
+  rows.sort(function (a, b) { return (a.refPos - b.refPos) * State.sortDir; });
+  if (State.sortCol === 'size') rows.sort(function (a, b) { return (a.size - b.size) * State.sortDir; });
+  if (State.sortCol === 'type') rows.sort(function (a, b) { return a.type.localeCompare(b.type) * State.sortDir; });
+
+  if (rows.length === 0) {
+    return '<div class="viz-panel"><p style="margin:6px 0;color:var(--text-secondary);font-size:13px;">No mismatches or indels — nothing to list.</p></div>';
+  }
+  var chipMeta = {
+    substitution: ['chip-sub', 'SUB'], insertion: ['chip-ins', 'INS'], deletion: ['chip-del', 'DEL'], ambiguous: ['chip-amb', 'AMB']
+  };
+  var body = rows.map(function (row) {
+    var meta = chipMeta[row.type];
+    var feats = featuresAtRefPos(refRec, row.refPos === '—' ? null : row.refPos);
+    var featHtml = feats.length ? feats.map(function (f) { return '<span class="feature-pill">' + escapeHtml(f.qualifiers.label || f.qualifiers.gene || f.type) + '</span>'; }).join(' ') : '<span style="color:var(--text-faint);">backbone</span>';
+    return '<tr>' +
+      '<td class="mono">' + fmtInt(row.refPos + 1) + '</td>' +
+      '<td><span class="chip ' + meta[0] + '">' + meta[1] + '</span></td>' +
+      '<td class="mono">' + escapeHtml(row.ref) + '</td>' +
+      '<td class="mono">' + escapeHtml(row.query) + '</td>' +
+      '<td>' + (row.size > 1 ? row.size + ' bp' : '—') + '</td>' +
+      '<td>' + featHtml + '</td>' +
+      '</tr>';
+  }).join('');
+  var ambNote = (r.ambiguous && r.ambiguous.length)
+    ? '<p style="margin:4px 0 10px;font-size:12px;color:var(--text-secondary);">AMB rows are ambiguous IUPAC base calls (e.g. an N) compatible with the reference — not counted as mismatches, but the exact base wasn\'t confidently called.</p>'
+    : '';
+  return '<div class="viz-panel">' +
+    '<div class="viz-panel-head"><h3>Mismatches &amp; indels (' + hardCount + (r.ambiguous && r.ambiguous.length ? ', +' + r.ambiguous.length + ' ambiguous' : '') + ')</h3></div>' +
+    ambNote +
+    '<div class="variant-table-wrap"><table class="variant-table"><thead><tr>' +
+    '<th data-sort="refPos">Ref. position</th><th data-sort="type">Type</th><th>Reference</th><th>Query</th><th data-sort="size">Size</th><th>Feature</th>' +
+    '</tr></thead><tbody>' + body + '</tbody></table></div></div>';
+}
+
+document.getElementById('review-body').addEventListener('click', function (e) {
+  var th = e.target.closest('[data-sort]');
+  if (th) {
+    var col = th.getAttribute('data-sort');
+    if (State.sortCol === col) State.sortDir *= -1; else { State.sortCol = col; State.sortDir = 1; }
+    renderSampleDetail();
+  }
+});
+
+// ===========================================================================
+// Detail drawer (raw aligned blocks + parameters)
+// ===========================================================================
+function refRangeLabel(pair) {
+  var r = pair.result;
+  var refRec = getRecord(pair.refUid);
+  var start = r.alignedRefStart + 1, end = r.alignedRefEnd;
+  if (refRec.circular && end < start) {
+    // Wraps past the origin — "901-900" reads like a typo, so spell out the wrap.
+    return fmtInt(start) + ' → ' + fmtInt(r.refLen) + ' → 1 → ' + fmtInt(end) + ' (wraps around origin)';
+  }
+  return fmtInt(start) + '–' + fmtInt(end);
+}
+
+function detailDrawerHtml(pair) {
+  var r = pair.result;
+  if (r.noConfidentMatch) return '';
+  var blockSize = 60;
+  var blocks = [];
+  for (var i = 0; i < r.alignedQ.length; i += blockSize) {
+    var refLine = r.alignedR.slice(i, i + blockSize);
+    var qLine = r.alignedQ.slice(i, i + blockSize);
+    var markLine = '';
+    for (var j = 0; j < refLine.length; j++) {
+      markLine += (refLine[j] === qLine[j]) ? ' ' : (refLine[j] === '-' || qLine[j] === '-') ? '-' : '·';
+    }
+    blocks.push('ref   ' + refLine + '\n      ' + markLine + '\nquery ' + qLine + '\n');
+  }
+  var params = [
+    ['Orientation tested', r.orientation],
+    ['Seed k-mer length', r.seedK],
+    ['Anchors used', fmtInt(r.anchorCount)],
+    ['Alignment score', Math.round(r.score * 10) / 10],
+    ['Aligned query range', fmtInt(r.alignedQueryStart + 1) + '–' + fmtInt(r.alignedQueryEnd)],
+    ['Aligned reference range', refRangeLabel(pair)]
+  ];
+  return '<details class="detail-drawer"><summary>Show alignment parameters &amp; raw aligned sequence</summary>' +
+    '<div class="drawer-body">' +
+    '<div class="param-grid">' + params.map(function (p) { return '<div><div class="k">' + p[0] + '</div><div class="v">' + escapeHtml(String(p[1])) + '</div></div>'; }).join('') + '</div>' +
+    '<pre>' + escapeHtml(blocks.join('\n')) + '</pre>' +
+    '</div></details>';
+}
+
+// ===========================================================================
+// Canvas alignment track + minimap + feature track
+//
+// All three canvases are sized to the VISIBLE VIEWPORT only (CSS width fixed to the
+// wrapper's clientWidth), not to the full alignment length — a canvas buffer sized to
+// the whole alignment at high zoom (or on a long plasmid) can exceed the browser's max
+// canvas dimension (commonly ~16k-32k px) and silently fail to render. A zero-height
+// spacer element gives the scrolling wrapper a real scrollbar sized to the full virtual
+// width, and each canvas redraws just the visible slice on scroll/zoom. Every canvas
+// also sets CSS style width/height independently of the backing-buffer pixel
+// width/height, which is required for correct rendering on HiDPI/Retina displays —
+// setting only the buffer size (via the `width`/`height` attributes) and leaving CSS
+// size to default would make the element render at the wrong on-screen size.
+// ===========================================================================
+var TRACK_H = 76; // rulerH(18) + gap(4) + rowH(22) + gap(4) + rowH(22) + padding
+var FEATURE_LANE_H = 16, FEATURE_PAD = 8;
+
+function sizeCanvasCss(canvas, cssWidth, cssHeight) {
+  var dpr = window.devicePixelRatio || 1;
+  canvas.style.width = cssWidth + 'px';
+  canvas.style.height = cssHeight + 'px';
+  canvas.width = Math.max(1, Math.round(cssWidth * dpr));
+  canvas.height = Math.max(1, Math.round(cssHeight * dpr));
+  var ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return ctx;
+}
+
+// Nearest-available-column lookup for every reference position, used to place feature
+// bars in the same column coordinate system as the alignment track (insertions add
+// columns without advancing refPos; deletions/mismatches/matches advance it by one per
+// column). Cached per pair since it only depends on the alignment result.
+function buildRefPosIndex(cols, refLen) {
+  var idx = new Array(refLen).fill(-1);
+  for (var i = 0; i < cols.refPos.length; i++) {
+    var rp = cols.refPos[i];
+    if (rp != null) idx[rp] = i;
+  }
+  var lastKnown = -1;
+  for (i = 0; i < refLen; i++) { if (idx[i] === -1) idx[i] = lastKnown; else lastKnown = idx[i]; }
+  var nextKnown = -1;
+  for (i = refLen - 1; i >= 0; i--) { if (idx[i] === -1) idx[i] = nextKnown; else nextKnown = idx[i]; }
+  return idx;
+}
+
+function featureLaneCount(features) {
+  var lanes = [];
+  (features || []).forEach(function (f) {
+    if (f.end <= f.start) return;
+    var lane = 0;
+    while (lanes[lane] !== undefined && lanes[lane] > f.start) lane++;
+    lanes[lane] = f.end;
+  });
+  return lanes.length;
+}
+
+function drawFeatureTrack(canvas, refRec, refPosIndex, viewStartCol, viewEndCol, pxPerBase, cssWidth, cssHeight) {
+  var ctx = sizeCanvasCss(canvas, cssWidth, cssHeight);
+  ctx.clearRect(0, 0, cssWidth, cssHeight);
+  if (!refRec.features || refRec.features.length === 0) return;
+  var lanes = [];
+  refRec.features.forEach(function (f) {
+    if (f.end <= f.start) return;
+    var lane = 0;
+    while (lanes[lane] !== undefined && lanes[lane] > f.start) lane++;
+    lanes[lane] = f.end;
+    var startCol = refPosIndex[clamp(f.start, 0, refPosIndex.length - 1)];
+    var endCol = refPosIndex[clamp(f.end - 1, 0, refPosIndex.length - 1)] + 1;
+    var x0 = (startCol - viewStartCol) * pxPerBase;
+    var x1 = (endCol - viewStartCol) * pxPerBase;
+    if (x1 < 0 || x0 > cssWidth) return;
+    var y = FEATURE_PAD / 2 + lane * FEATURE_LANE_H;
+    ctx.fillStyle = f.strand === -1 ? '#CBB8E0' : '#B9CFE3';
+    var cx0 = clamp(x0, 0, cssWidth), cx1 = clamp(x1, 0, cssWidth);
+    ctx.fillRect(cx0, y, Math.max(1, cx1 - cx0), 12);
+    var label = f.qualifiers && (f.qualifiers.label || f.qualifiers.gene || f.qualifiers.note) || f.type;
+    if (cx1 - cx0 > 30) {
+      ctx.fillStyle = '#16232F';
+      ctx.font = '10px -apple-system,sans-serif';
+      ctx.save();
+      ctx.beginPath(); ctx.rect(cx0, y, cx1 - cx0, 12); ctx.clip();
+      ctx.fillText(String(label).slice(0, 40), cx0 + 3, y + 10);
+      ctx.restore();
+    }
+  });
+}
+
+function drawTrack(canvas, cols, pair, viewStartCol, viewEndCol, pxPerBase, cssWidth, cssHeight) {
+  var ctx = sizeCanvasCss(canvas, cssWidth, cssHeight);
+  ctx.clearRect(0, 0, cssWidth, cssHeight);
+  var w = cssWidth, h = cssHeight;
+  var rulerH = 18, rowH = 22, gap = 4;
+  var refY = rulerH + gap, queryY = refY + rowH + gap;
+  var showLetters = pxPerBase >= 9;
+
+  ctx.font = '11px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace';
+  ctx.textBaseline = 'middle';
+
+  for (var i = viewStartCol; i < viewEndCol && i < cols.type.length; i++) {
+    var x = (i - viewStartCol) * pxPerBase;
+    var t = cols.type[i];
+    var refChar = pair.result.alignedR[i], qChar = pair.result.alignedQ[i];
+
+    // reference row
+    ctx.fillStyle = VIZ.refBase;
+    ctx.fillRect(x, refY, Math.ceil(pxPerBase), rowH);
+    if (showLetters && refChar !== '-') {
+      ctx.fillStyle = '#3A4854';
+      ctx.fillText(refChar, x + pxPerBase / 2 - 3, refY + rowH / 2 + 1);
+    } else if (refChar === '-') {
+      ctx.fillStyle = VIZ.insertion;
+      ctx.fillRect(x, refY + rowH / 2 - 1, Math.max(1, pxPerBase), 2);
+    }
+
+    // query row background colored by classification
+    var bg = VIZ.match;
+    if (t === 'mismatch') bg = '#F3D9C8';
+    else if (t === 'ambiguous') bg = '#F1E6BE';
+    else if (t === 'insertion') bg = '#CFE3F0';
+    else if (t === 'deletion') bg = '#E3D0DE';
+    ctx.fillStyle = bg;
+    ctx.fillRect(x, queryY, Math.ceil(pxPerBase), rowH);
+
+    if (t === 'mismatch') {
+      ctx.fillStyle = VIZ.mismatch;
+      ctx.beginPath();
+      var cx = x + pxPerBase / 2, cy = queryY + rowH / 2, s = Math.min(6, pxPerBase / 2.4);
+      ctx.moveTo(cx, cy - s); ctx.lineTo(cx + s, cy); ctx.lineTo(cx, cy + s); ctx.lineTo(cx - s, cy); ctx.closePath();
+      ctx.fill();
+    } else if (t === 'insertion') {
+      ctx.fillStyle = VIZ.insertion;
+      ctx.beginPath();
+      var cx2 = x + pxPerBase / 2, s2 = Math.min(6, pxPerBase / 2.2);
+      ctx.moveTo(cx2 - s2, queryY + rowH - 1); ctx.lineTo(cx2 + s2, queryY + rowH - 1); ctx.lineTo(cx2, queryY + rowH - 1 - s2 * 1.6); ctx.closePath();
+      ctx.fill();
+    } else if (t === 'deletion') {
+      ctx.fillStyle = VIZ.deletion;
+      ctx.beginPath();
+      var cx3 = x + pxPerBase / 2, s3 = Math.min(6, pxPerBase / 2.2);
+      ctx.moveTo(cx3 - s3, queryY + 1); ctx.lineTo(cx3 + s3, queryY + 1); ctx.lineTo(cx3, queryY + 1 + s3 * 1.6); ctx.closePath();
+      ctx.fill();
+    } else if (t === 'ambiguous') {
+      ctx.strokeStyle = VIZ.ambiguous; ctx.lineWidth = 1.4;
+      ctx.beginPath(); ctx.arc(x + pxPerBase / 2, queryY + rowH / 2, Math.min(5, pxPerBase / 2.6), 0, Math.PI * 2); ctx.stroke();
+    }
+    if (showLetters && qChar !== '-') {
+      ctx.fillStyle = (t === 'mismatch') ? '#7A2E08' : '#3A4854';
+      ctx.fillText(qChar, x + pxPerBase / 2 - 3, queryY + rowH / 2 + 1);
+    }
+  }
+
+  // ruler
+  ctx.fillStyle = '#8A97A3';
+  ctx.font = '10px -apple-system,sans-serif';
+  var refLen = pair.result.refLen;
+  var tickEvery = pxPerBase > 20 ? 10 : pxPerBase > 6 ? 100 : pxPerBase > 1.5 ? 1000 : 5000;
+  for (var i2 = viewStartCol; i2 < viewEndCol && i2 < cols.refPos.length; i2++) {
+    var rp = cols.refPos[i2];
+    if (rp != null && rp % tickEvery === 0) {
+      var xx = (i2 - viewStartCol) * pxPerBase;
+      ctx.strokeStyle = '#DCE3EA'; ctx.beginPath(); ctx.moveTo(xx, rulerH); ctx.lineTo(xx, h); ctx.stroke();
+      ctx.fillText(fmtInt(rp + 1), xx + 2, rulerH / 2 + 1);
+    }
+  }
+  // row labels
+  ctx.fillStyle = '#8A97A3'; ctx.font = '10px -apple-system,sans-serif';
+  ctx.textAlign = 'left';
+
+  // caption row labels drawn outside via DOM instead (kept simple here)
+}
+
+function drawMinimap(canvas, cols, pair, cssWidth, cssHeight, viewStartCol, viewEndCol) {
+  var ctx = sizeCanvasCss(canvas, cssWidth, cssHeight);
+  var w = cssWidth, h = cssHeight;
+  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#EEF1F4'; ctx.fillRect(0, 0, w, h);
+  var n = cols.type.length;
+  for (var i = 0; i < n; i++) {
+    var x = Math.floor((i / n) * w);
+    var t = cols.type[i];
+    if (t === 'mismatch') { ctx.fillStyle = VIZ.mismatch; ctx.fillRect(x, 4, 2, h - 8); }
+    else if (t === 'insertion') { ctx.fillStyle = VIZ.insertion; ctx.fillRect(x, 4, 2, h - 8); }
+    else if (t === 'deletion') { ctx.fillStyle = VIZ.deletion; ctx.fillRect(x, 4, 2, h - 8); }
+    else if (t === 'ambiguous') { ctx.fillStyle = VIZ.ambiguous; ctx.fillRect(x, 4, 2, h - 8); }
+  }
+  // current-viewport indicator, so the minimap always shows whole-sequence context
+  if (viewStartCol != null && viewEndCol != null && n > 0) {
+    var vx0 = clamp((viewStartCol / n) * w, 0, w);
+    var vx1 = clamp((viewEndCol / n) * w, 0, w);
+    ctx.fillStyle = 'rgba(30,72,112,0.10)';
+    ctx.fillRect(vx0, 0, Math.max(2, vx1 - vx0), h);
+    ctx.strokeStyle = '#1E4870'; ctx.lineWidth = 1.5;
+    ctx.strokeRect(vx0 + 0.75, 0.75, Math.max(1, vx1 - vx0 - 1.5), h - 1.5);
+  }
+}
+
+var trackState = { pxPerBase: 8, cols: null, pair: null };
+
+function renderVizPanel(pair) {
+  var r = pair.result;
+  if (r.noConfidentMatch) return '';
+  return '<div class="viz-panel">' +
+    '<div class="viz-panel-head">' +
+    '<h3>Alignment track</h3>' +
+    '<div class="viz-controls">' +
+    '<button id="viz-zoom-out" title="Zoom out">−</button>' +
+    '<button id="viz-zoom-fit" title="Fit to width">Fit</button>' +
+    '<button id="viz-zoom-in" title="Zoom in">+</button>' +
+    '</div></div>' +
+    '<canvas id="minimap-canvas"></canvas>' +
+    '<div id="track-canvas-wrap">' +
+    '<div id="track-spacer"></div>' +
+    '<canvas id="feature-canvas"></canvas>' +
+    '<canvas id="track-canvas"></canvas>' +
+    '</div>' +
+    '<div class="viz-legend">' +
+    '<span><span class="legend-swatch" style="background:' + VIZ.mismatch + ';border-radius:0;transform:rotate(45deg);width:8px;height:8px;"></span>Mismatch (◆)</span>' +
+    '<span><span class="legend-swatch" style="background:' + VIZ.insertion + ';clip-path:polygon(50% 0,0 100%,100% 100%);"></span>Insertion (▲, extra in query)</span>' +
+    '<span><span class="legend-swatch" style="background:' + VIZ.deletion + ';clip-path:polygon(50% 100%,0 0,100% 0);"></span>Deletion (▼, missing from query)</span>' +
+    '<span><span class="legend-swatch" style="border:1.5px solid ' + VIZ.ambiguous + ';background:transparent;border-radius:50%;"></span>Ambiguous base (○)</span>' +
+    '</div>' +
+    '</div>';
+}
+
+function setupTrackInteraction(pair) {
+  var cols = buildColumnModel(pair);
+  var refRec = getRecord(pair.refUid);
+  var refPosIndex = buildRefPosIndex(cols, pair.result.refLen);
+  trackState.cols = cols; trackState.pair = pair;
+  var wrap = document.getElementById('track-canvas-wrap');
+  var spacer = document.getElementById('track-spacer');
+  var canvas = document.getElementById('track-canvas');
+  var featCanvas = document.getElementById('feature-canvas');
+  var minimap = document.getElementById('minimap-canvas');
+  if (!wrap || !canvas) return;
+
+  var featureH = Math.max(20, FEATURE_PAD + featureLaneCount(refRec.features) * FEATURE_LANE_H);
+
+  var saved = State.trackViews.get(pair.uid);
+  if (!saved) { saved = { pxPerBase: 8, scrollLeft: 0 }; State.trackViews.set(pair.uid, saved); }
+  trackState.pxPerBase = saved.pxPerBase;
+
+  function viewRange() {
+    var cssWidth = wrap.clientWidth;
+    var viewStartCol = clamp(Math.floor(wrap.scrollLeft / trackState.pxPerBase), 0, cols.type.length);
+    var viewEndCol = clamp(viewStartCol + Math.ceil(cssWidth / trackState.pxPerBase) + 2, 0, cols.type.length);
+    return { cssWidth: cssWidth, viewStartCol: viewStartCol, viewEndCol: viewEndCol };
+  }
+
+  function redraw() {
+    var v = viewRange();
+    drawTrack(canvas, cols, pair, v.viewStartCol, v.viewEndCol, trackState.pxPerBase, v.cssWidth, TRACK_H);
+    drawFeatureTrack(featCanvas, refRec, refPosIndex, v.viewStartCol, v.viewEndCol, trackState.pxPerBase, v.cssWidth, featureH);
+    drawMinimap(minimap, cols, pair, minimap.clientWidth || wrap.clientWidth, 34, v.viewStartCol, v.viewEndCol);
+  }
+
+  function resizeAndDraw() {
+    var totalWidth = Math.max(1, cols.type.length * trackState.pxPerBase);
+    spacer.style.width = totalWidth + 'px';
+    redraw();
+  }
+
+  wrap.scrollLeft = saved.scrollLeft;
+  resizeAndDraw();
+
+  wrap.onscroll = function () { saved.scrollLeft = wrap.scrollLeft; redraw(); };
+
+  function setZoom(px, anchorCol) {
+    px = clamp(px, 0.1, 28);
+    var cssWidth = wrap.clientWidth;
+    if (anchorCol == null) anchorCol = wrap.scrollLeft / trackState.pxPerBase;
+    var fracIntoView = (anchorCol * trackState.pxPerBase - wrap.scrollLeft);
+    trackState.pxPerBase = px; saved.pxPerBase = px;
+    var totalWidth = Math.max(1, cols.type.length * px);
+    spacer.style.width = totalWidth + 'px';
+    wrap.scrollLeft = clamp(anchorCol * px - fracIntoView, 0, Math.max(0, totalWidth - cssWidth));
+    redraw();
+  }
+  document.getElementById('viz-zoom-in').onclick = function () { setZoom(trackState.pxPerBase * 1.6); };
+  document.getElementById('viz-zoom-out').onclick = function () { setZoom(trackState.pxPerBase / 1.6); };
+  document.getElementById('viz-zoom-fit').onclick = function () { setZoom(wrap.clientWidth / cols.type.length, 0); };
+
+  wrap.addEventListener('wheel', function (e) {
+    if (!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    var rect = wrap.getBoundingClientRect();
+    var mouseX = e.clientX - rect.left + wrap.scrollLeft;
+    var colUnderMouse = mouseX / trackState.pxPerBase;
+    setZoom(trackState.pxPerBase * (e.deltaY < 0 ? 1.15 : 0.87), colUnderMouse);
+  }, { passive: false });
+
+  // drag to pan
+  var isDown = false, startX = 0, startScroll = 0;
+  wrap.addEventListener('mousedown', function (e) { isDown = true; startX = e.clientX; startScroll = wrap.scrollLeft; wrap.classList.add('grabbing'); });
+  window.addEventListener('mouseup', function () { isDown = false; wrap.classList.remove('grabbing'); });
+  window.addEventListener('mousemove', function (e) {
+    if (!isDown) return;
+    wrap.scrollLeft = startScroll - (e.clientX - startX);
+  });
+
+  // minimap click/drag to jump
+  function minimapSeek(e) {
+    var rect = minimap.getBoundingClientRect();
+    var frac = clamp((e.clientX - rect.left) / rect.width, 0, 1);
+    var targetCol = frac * cols.type.length;
+    wrap.scrollLeft = targetCol * trackState.pxPerBase - wrap.clientWidth / 2;
+  }
+  minimap.addEventListener('mousedown', function (e) { minimapSeek(e); var mm = function (ev) { minimapSeek(ev); }; window.addEventListener('mousemove', mm); window.addEventListener('mouseup', function up() { window.removeEventListener('mousemove', mm); window.removeEventListener('mouseup', up); }, { once: true }); });
+
+  // hover tooltip — canvas is a viewport window, so the visible column is the
+  // scroll-relative position, not just the raw mouse offset within the canvas.
+  var tooltip = document.getElementById('hover-tooltip');
+  canvas.addEventListener('mousemove', function (e) {
+    var rect = canvas.getBoundingClientRect();
+    var x = e.clientX - rect.left;
+    var col = Math.floor((wrap.scrollLeft + x) / trackState.pxPerBase);
+    if (col < 0 || col >= cols.type.length) { tooltip.style.display = 'none'; return; }
+    var refPos = cols.refPos[col], qPos = cols.queryPos[col];
+    var refChar = pair.result.alignedR[col], qChar = pair.result.alignedQ[col];
+    var t = cols.type[col];
+    var feats = featuresAtRefPos(refRec, refPos);
+    var lines = [];
+    lines.push('<b>' + t.toUpperCase() + '</b>');
+    lines.push('Ref: ' + (refPos != null ? (refPos + 1) + ' (' + refChar + ')' : '—'));
+    lines.push('Query: ' + (qPos != null ? (qPos + 1) + ' (' + qChar + ')' : '—'));
+    if (feats.length) lines.push('Feature: ' + feats.map(function (f) { return f.qualifiers.label || f.type; }).join(', '));
+    tooltip.innerHTML = lines.join('<br>');
+    tooltip.style.display = 'block';
+    tooltip.style.left = (e.clientX + 14) + 'px';
+    tooltip.style.top = (e.clientY + 14) + 'px';
+  });
+  canvas.addEventListener('mouseleave', function () { tooltip.style.display = 'none'; });
+  minimap.addEventListener('mouseleave', function () { tooltip.style.display = 'none'; });
+}
+
+// ===========================================================================
+// Full sample-detail render
+// ===========================================================================
+function renderSampleDetail() {
+  var pair = currentPair();
+  var body = document.getElementById('review-body');
+  if (!pair) {
+    body.innerHTML = '<div class="empty-state"><h3>No sample selected</h3><p>Import and align sequences to see results here.</p></div>';
+    document.getElementById('rt-title').textContent = '—';
+    return;
+  }
+  var q = getRecord(pair.queryUid), r = getRecord(pair.refUid);
+  document.getElementById('rt-title').textContent = (q ? q.id : '?') + '  vs.  ' + (r ? r.id : '?');
+
+  if (pair.status === 'pending' || !pair.result) {
+    body.innerHTML = '<div class="empty-state"><h3>Not yet aligned</h3><p>Go back to Import &amp; Match and click "Align all pairs".</p></div>';
+    return;
+  }
+
+  body.innerHTML =
+    statusBannerHtml(pair) +
+    statRowHtml(pair) +
+    renderVizPanel(pair) +
+    variantTableHtml(pair) +
+    detailDrawerHtml(pair);
+
+  if (!pair.result.noConfidentMatch) setupTrackInteraction(pair);
+}
+
+// ===========================================================================
+// Keyboard shortcuts
+// ===========================================================================
+document.addEventListener('keydown', function (e) {
+  var tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+  if (State.view !== 'review') return;
+  if (e.key === 'j' || e.key === 'ArrowDown') { e.preventDefault(); stepSample(1); }
+  else if (e.key === 'k' || e.key === 'ArrowUp') { e.preventDefault(); stepSample(-1); }
+  else if (e.key === 'e' || e.key === 'E') { e.preventDefault(); toggleExportMenu(); }
+  else if (e.key === 'Escape') {
+    var openDrawer = document.querySelector('details[open]');
+    if (openDrawer) openDrawer.removeAttribute('open');
+    else setView('import');
+  }
+});
+
+// ===========================================================================
+// Export functions
+// ===========================================================================
+function toggleExportMenu(force) {
+  var dd = document.getElementById('export-dropdown');
+  dd.classList.toggle('open', force != null ? force : !dd.classList.contains('open'));
+}
+document.getElementById('btn-export-menu').addEventListener('click', function () { toggleExportMenu(); });
+document.addEventListener('click', function (e) {
+  if (!e.target.closest('.export-menu')) toggleExportMenu(false);
+});
+document.getElementById('export-dropdown').addEventListener('click', function (e) {
+  var btn = e.target.closest('[data-export]');
+  if (!btn) return;
+  toggleExportMenu(false);
+  var kind = btn.getAttribute('data-export');
+  var pair = currentPair();
+  if (kind === 'png') exportPng(pair);
+  else if (kind === 'csv') exportCsv(pair);
+  else if (kind === 'fasta') exportFasta(pair);
+  else if (kind === 'report') exportReport(pair);
+  else if (kind === 'batch-summary') exportBatchSummary();
+  else if (kind === 'session') exportSession();
+});
+
+function safeName(s) { return String(s).replace(/[^a-z0-9_\-\.]+/gi, '_'); }
+
+// Renders the WHOLE alignment (not just whatever slice happens to be scrolled into
+// view on screen) into a fresh off-screen canvas, at a resolution chosen to fit a
+// reasonable notebook/slide image width. Reuses the same drawTrack/drawFeatureTrack
+// functions used for the live, virtualized on-screen track — those already accept an
+// explicit column range and CSS size, so they work equally well against an off-screen
+// canvas sized to the full alignment.
+var EXPORT_MAX_WIDTH = 2200;
+
+function exportPng(pair) {
+  if (!pair || !pair.result || pair.result.noConfidentMatch) { toast('No alignment image available for this sample.', true); return; }
+  var q = getRecord(pair.queryUid), r = getRecord(pair.refUid);
+  var cols = buildColumnModel(pair);
+  var refPosIndex = buildRefPosIndex(cols, pair.result.refLen);
+  var exportPxPerBase = clamp(EXPORT_MAX_WIDTH / Math.max(1, cols.type.length), 0.08, 14);
+  var totalWidth = Math.max(200, Math.round(cols.type.length * exportPxPerBase));
+  var featureH = Math.max(20, FEATURE_PAD + featureLaneCount(r.features) * FEATURE_LANE_H);
+  var hasFeatures = r.features && r.features.length > 0;
+
+  var trackCanvas = document.createElement('canvas');
+  drawTrack(trackCanvas, cols, pair, 0, cols.type.length, exportPxPerBase, totalWidth, TRACK_H);
+  var featCanvas = null;
+  if (hasFeatures) {
+    featCanvas = document.createElement('canvas');
+    drawFeatureTrack(featCanvas, r, refPosIndex, 0, cols.type.length, exportPxPerBase, totalWidth, featureH);
+  }
+
+  var pad = 16, titleH = 34, legendH = 20;
+  var contentH = titleH + (hasFeatures ? featureH : 0) + TRACK_H + legendH;
+  var dpr = window.devicePixelRatio || 1;
+  var out = document.createElement('canvas');
+  out.width = Math.round((totalWidth + pad * 2) * dpr);
+  out.height = Math.round((contentH + pad * 2) * dpr);
+  var ctx = out.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, totalWidth + pad * 2, contentH + pad * 2);
+  ctx.fillStyle = '#16232F'; ctx.font = '600 13px -apple-system,sans-serif';
+  ctx.fillText((q ? q.id : '?') + ' vs ' + (r ? r.id : '?') + '  —  ' + fmtPct(pair.result.percentIdentity) + ' identity, ' +
+    fmtInt(pair.result.mismatches.length) + ' mismatch(es), ' + fmtInt(pair.result.indelCount) + ' indel(s)', pad, pad + 14);
+  var y = pad + titleH;
+  if (featCanvas) { ctx.drawImage(featCanvas, pad, y, totalWidth, featureH); y += featureH; }
+  ctx.drawImage(trackCanvas, pad, y, totalWidth, TRACK_H); y += TRACK_H + 4;
+  ctx.font = '10.5px -apple-system,sans-serif';
+  var legendItems = [['mismatch', VIZ.mismatch], ['insertion', VIZ.insertion], ['deletion', VIZ.deletion], ['ambiguous', VIZ.ambiguous]];
+  var lx = pad;
+  legendItems.forEach(function (item) {
+    ctx.fillStyle = item[1]; ctx.fillRect(lx, y, 9, 9);
+    ctx.fillStyle = '#5B6B7A'; ctx.fillText(item[0], lx + 13, y + 8);
+    lx += 13 + ctx.measureText(item[0]).width + 16;
+  });
+  out.toBlob(function (blob) { downloadBlob(blob, safeName((q ? q.id : 'query') + '_vs_' + (r ? r.id : 'reference') + '_alignment.png')); });
+}
+
+function exportCsv(pair) {
+  if (!pair || !pair.result || pair.result.noConfidentMatch) { toast('No variants available for this sample.', true); return; }
+  var r = pair.result;
+  var refRec = getRecord(pair.refUid);
+  var rows = [['ref_position_1based', 'type', 'reference', 'query', 'size_bp', 'feature']];
+  function featStr(pos) {
+    var feats = featuresAtRefPos(refRec, pos);
+    return feats.map(function (f) { return f.qualifiers.label || f.qualifiers.gene || f.type; }).join(';');
+  }
+  r.mismatches.forEach(function (m) { rows.push([m.refPos + 1, 'substitution', m.refBase, m.queryBase, 1, featStr(m.refPos)]); });
+  r.insertions.forEach(function (m) { rows.push([m.refPos + 1, 'insertion', '', m.bases, m.size, featStr(m.refPos)]); });
+  r.deletions.forEach(function (m) { rows.push([m.refPos + 1, 'deletion', m.bases, '', m.size, featStr(m.refPos)]); });
+  (r.ambiguous || []).forEach(function (m) { rows.push([m.refPos + 1, 'ambiguous', m.refBase, m.queryBase, 1, featStr(m.refPos)]); });
+  var csv = rows.map(function (row) { return row.map(csvCell).join(','); }).join('\r\n');
+  var q = getRecord(pair.queryUid);
+  downloadText(csv, safeName((q ? q.id : 'query') + '_variants.csv'), 'text/csv');
+}
+function csvCell(v) {
+  v = String(v);
+  return /[",\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+}
+
+function exportFasta(pair) {
+  if (!pair || !pair.result || pair.result.noConfidentMatch) { toast('No corrected FASTA available for this sample.', true); return; }
+  var q = getRecord(pair.queryUid), r = getRecord(pair.refUid);
+  var seq = pair.result.correctedFasta || q.seq;
+  var header = '>' + q.id + '_corrected orientation=' + pair.result.orientation +
+    (r.circular ? (' rotation_offset=' + pair.result.rotationOffset) : '') + ' reference=' + r.id;
+  var body = seq.match(/.{1,70}/g).join('\n');
+  downloadText(header + '\n' + body + '\n', safeName(q.id + '_corrected.fasta'));
+}
+
+function reportCss() {
+  return document.querySelector('style').textContent;
+}
+
+function exportReport(pair) {
+  if (!pair || !pair.result) { toast('Nothing to export yet.', true); return; }
+  var html = buildStandaloneReportHtml([pair]);
+  var q = getRecord(pair.queryUid);
+  downloadText(html, safeName(q.id + '_report.html'), 'text/html');
+}
+function exportBatchSummary() {
+  if (State.pairs.length === 0) { toast('Nothing to export yet.', true); return; }
+  var html = buildStandaloneReportHtml(State.pairs);
+  downloadText(html, 'plasmid_align_batch_report.html', 'text/html');
+}
+
+function buildStandaloneReportHtml(pairs) {
+  var rows = pairs.map(function (p) {
+    var q = getRecord(p.queryUid), r = getRecord(p.refUid);
+    var status = statusOf(p);
+    var res = p.result;
+    var summary = (!res || res.noConfidentMatch) ? '<span class="chip chip-del">No confident match</span>' :
+      fmtPct(res.percentIdentity) + ' identity, ' + res.mismatches.length + ' mismatch(es), ' + res.indelCount + ' indel(s)';
+    var body = '';
+    if (res && !res.noConfidentMatch) {
+      body = statRowHtml(p) + variantTableHtml(p) + detailDrawerHtml(p);
+    }
+    return '<section class="report-sample"><h2>' + statusIconSvg(status, 20) + ' ' + escapeHtml(q ? q.id : '?') + ' <small>vs ' + escapeHtml(r ? r.id : '?') + '</small></h2>' +
+      '<p class="report-summary">' + summary + '</p>' + body + '</section>';
+  }).join('<hr>');
+  return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Plasmid Align report</title><style>' +
+    reportCss() +
+    'body{padding:24px;max-width:1000px;margin:0 auto;background:#fff;} .report-sample{margin-bottom:36px;} .report-summary{color:var(--text-secondary);} details{margin-top:12px;}' +
+    '</style></head><body><h1 style="color:var(--deep-blue);">Plasmid Align — report</h1><p style="color:var(--text-secondary);font-size:13px;">Generated ' + new Date().toLocaleString() + '</p>' + rows + '</body></html>';
+}
+
+function exportSession() {
+  var data = {
+    version: 1,
+    savedAt: new Date().toISOString(),
+    records: State.records,
+    pairs: State.pairs.map(function (p) { return { uid: p.uid, queryUid: p.queryUid, refUid: p.refUid, confidence: p.confidence, basis: p.basis, status: p.status, result: p.result }; })
+  };
+  downloadText(JSON.stringify(data, function (k, v) { return v instanceof Map ? Array.from(v.entries()) : v; }), 'plasmid_align_session.json', 'application/json');
+}
+
+document.getElementById('btn-save-session').addEventListener('click', exportSession);
+document.getElementById('btn-load-session').addEventListener('click', function () { document.getElementById('file-input-session').click(); });
+document.getElementById('file-input-session').addEventListener('change', function (e) {
+  var file = e.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function () {
+    try {
+      var data = JSON.parse(reader.result);
+      loadSession(data);
+      toast('Session loaded: ' + data.records.query.length + ' quer(ies), ' + data.records.reference.length + ' reference(s).');
+    } catch (err) {
+      toast('Could not load session file: ' + err.message, true);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+function loadSession(data) {
+  data.records.query.forEach(function (r) { if (r.invalidChars && !(r.invalidChars instanceof Map)) r.invalidChars = new Map(r.invalidChars); });
+  data.records.reference.forEach(function (r) { if (r.invalidChars && !(r.invalidChars instanceof Map)) r.invalidChars = new Map(r.invalidChars); });
+  State.records = data.records;
+  State.pairs = data.pairs;
+  State.sketchCache.clear();
+  renderRecordList('query'); renderRecordList('reference');
+  refreshMatchingUI();
+  var anyResult = State.pairs.some(function (p) { return p.result; });
+  if (anyResult) { document.getElementById('nav-review').disabled = false; State.currentPairUid = State.pairs[0].uid; }
+  setView('import');
+}
+
+// ===========================================================================
+// Drag & drop / file-picker / paste wiring
+// ===========================================================================
+['query', 'reference'].forEach(function (zone) {
+  var dz = document.getElementById('dz-' + zone);
+  dz.addEventListener('dragover', function (e) { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', function () { dz.classList.remove('dragover'); });
+  dz.addEventListener('drop', function (e) {
+    e.preventDefault(); dz.classList.remove('dragover');
+    if (e.dataTransfer.files && e.dataTransfer.files.length) handleFileList(zone, e.dataTransfer.files);
+  });
+});
+
+document.addEventListener('click', function (e) {
+  var pick = e.target.closest('[data-action="pick-file"]');
+  if (pick) {
+    var zone = pick.getAttribute('data-zone');
+    document.querySelector('input[type=file][data-zone="' + zone + '"]').click();
+  }
+  var togglePaste = e.target.closest('[data-action="toggle-paste"]');
+  if (togglePaste) {
+    var zone2 = togglePaste.getAttribute('data-zone');
+    document.querySelector('.paste-area[data-zone="' + zone2 + '"]').classList.add('open');
+  }
+  var cancelPaste = e.target.closest('[data-action="cancel-paste"]');
+  if (cancelPaste) {
+    var zone3 = cancelPaste.getAttribute('data-zone');
+    var area = document.querySelector('.paste-area[data-zone="' + zone3 + '"]');
+    area.classList.remove('open');
+    area.querySelector('textarea').value = '';
+  }
+  var submitPaste = e.target.closest('[data-action="submit-paste"]');
+  if (submitPaste) {
+    var zone4 = submitPaste.getAttribute('data-zone');
+    var area2 = document.querySelector('.paste-area[data-zone="' + zone4 + '"]');
+    var text = area2.querySelector('textarea').value.trim();
+    if (!text) { toast('Paste some sequence text first.', true); return; }
+    var added = addRecordsFromText(zone4, text, 'pasted sequence');
+    if (added.length) {
+      area2.classList.remove('open');
+      area2.querySelector('textarea').value = '';
+      renderRecordList(zone4);
+      refreshMatchingUI();
+    }
+  }
+});
+document.querySelectorAll('input[type=file][data-zone]').forEach(function (input) {
+  input.addEventListener('change', function () {
+    if (this.files.length) handleFileList(this.getAttribute('data-zone'), this.files);
+    this.value = '';
+  });
+});
+
+// ===========================================================================
+// Init
+// ===========================================================================
+initWorker();
+refreshMatchingUI();
+window.addEventListener('resize', function () {
+  if (State.view === 'review') { var p = currentPair(); if (p && p.result && !p.result.noConfidentMatch) setupTrackInteraction(p); }
+});
+
+// Expose for testing hooks (Playwright drives the UI through real DOM events, but a
+// few internal accessors make assertions much more direct/robust than scraping HTML).
+window.__PA_TEST__ = {
+  state: State,
+  addRecordsFromText: addRecordsFromText,
+  renderRecordList: renderRecordList,
+  refreshMatchingUI: refreshMatchingUI,
+  runAlignment: runAlignment,
+  getRecord: getRecord,
+  currentPair: currentPair,
+  statusOf: statusOf
+};
+
+})();
+
+</script>
+</body>
+</html>
