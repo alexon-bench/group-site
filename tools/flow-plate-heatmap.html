@@ -5,9 +5,72 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Flow cytometry plate heatmap</title>
 
-<!-- TODO: paste the complete "MTECH TOP BAR STYLES START" ... "MTECH TOP BAR STYLES END" block from tools/_template.html here. -->
-
 <style>
+      /* MTECH TOP BAR STYLES START: copy this block unchanged into every tool */
+      .site-header {
+        width: 100%;
+        border-bottom: 1px solid #dadcd7;
+        background: rgba(245, 245, 241, 0.94);
+      }
+
+      .header-inner {
+        display: flex;
+        width: min(1120px, calc(100% - 48px));
+        min-height: 76px;
+        margin-inline: auto;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: #141615;
+        font-size: 1.02rem;
+        font-weight: 760;
+        letter-spacing: -0.02em;
+        text-decoration: none;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 30px;
+        height: 30px;
+        place-items: center;
+        border-radius: 7px;
+        background: #141615;
+        color: white;
+        font-size: 0.82rem;
+        font-weight: 800;
+      }
+
+      .site-nav {
+        display: flex;
+        align-items: center;
+        gap: 30px;
+        color: #626763;
+        font-size: 0.9rem;
+        font-weight: 600;
+      }
+
+      .site-nav a {
+        color: inherit;
+        font-weight: inherit;
+        text-decoration: none;
+        transition: color 150ms ease;
+      }
+
+      .site-nav a:hover,
+      .site-nav a:focus-visible { color: #315cf5; }
+
+      @media (max-width: 560px) {
+        .header-inner { width: min(100% - 28px, 1120px); min-height: 68px; }
+        .site-nav { gap: 16px; }
+        .site-nav a:nth-child(2) { display: none; }
+      }
+      /* MTECH TOP BAR STYLES END */
+
   :root {
     --bg: #edf0f3;
     --panel: #ffffff;
@@ -193,7 +256,21 @@
 </head>
 <body>
 
-<!-- TODO: paste the complete "MTECH TOP BAR START" ... "MTECH TOP BAR END" block (with data-mtech-nav="v1") from tools/_template.html here. -->
+    <!-- MTECH TOP BAR START: copy this block unchanged into every tool -->
+    <header class="site-header" data-mtech-nav="v1">
+      <div class="header-inner">
+        <a class="brand" href="../index.html" aria-label="MTech home">
+          <span class="brand-mark" aria-hidden="true">M</span>
+          <span>MTech</span>
+        </a>
+        <nav class="site-nav" aria-label="Main navigation">
+          <a href="../index.html#tools">Tools</a>
+          <a href="../index.html#contribute">Contribute</a>
+          <a href="https://github.com/alexon-bench/group-site" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+        </nav>
+      </div>
+    </header>
+    <!-- MTECH TOP BAR END -->
 
 <main class="wrap">
   <header class="intro">
