@@ -94,6 +94,28 @@
   .wrap { max-width: 1400px; margin: 0 auto; padding: 24px 20px 56px; }
   h1 { font-size: 1.7rem; margin: 0 0 6px; letter-spacing: -0.01em; }
   .intro p { margin: 0; max-width: 70ch; color: var(--muted); }
+  .guide { margin-top: 14px; max-width: 1000px; }
+  .guide .quick {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px;
+    margin: 0; padding: 0; list-style: none; counter-reset: step;
+  }
+  .guide .quick li {
+    counter-increment: step; background: var(--panel); border: 1px solid var(--line);
+    border-radius: 8px; padding: 10px 12px; font-size: 0.88rem; color: #33414d;
+  }
+  .guide .quick li::before {
+    content: counter(step); display: inline-grid; place-items: center; width: 20px; height: 20px;
+    margin-right: 7px; border-radius: 50%; background: var(--accent); color: #fff;
+    font-size: 0.75rem; font-weight: 700;
+  }
+  .guide .quick strong { color: var(--ink); }
+  .guide details { margin-top: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 0 14px; }
+  .guide summary { cursor: pointer; font-weight: 700; padding: 10px 0; }
+  .guide dl { margin: 0 0 12px; display: grid; grid-template-columns: minmax(130px, 200px) 1fr; gap: 8px 16px; font-size: 0.88rem; }
+  .guide dt { font-weight: 700; }
+  .guide dd { margin: 0; color: #33414d; }
+  @media (max-width: 640px) { .guide dl { grid-template-columns: 1fr; gap: 2px; } .guide dd { margin-bottom: 8px; } }
+
   .layout {
     display: grid;
     grid-template-columns: 296px minmax(0, 1fr);
@@ -271,6 +293,19 @@
   .display fieldset, .display fieldset + fieldset { border-top: 0; padding-top: 0; }
   .display .hint { margin-top: 6px; }
 
+  .well.grp::before {
+    content: attr(data-g); position: absolute; top: 3px; left: 4px;
+    font-size: max(6px, calc(var(--cell) * 0.14)); font-weight: 700; line-height: 1;
+    background: rgba(255, 255, 255, 0.88); color: #14202a; padding: 1px 3px; border-radius: 3px;
+    border: 1px solid rgba(0, 0, 0, 0.35);
+  }
+  .selbar input[type="text"] { width: 170px; }
+  .chart-opts {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 0 14px;
+    margin-top: 6px; font-size: 0.9rem; align-items: end;
+  }
+  .chart-opts .check { margin-bottom: 6px; }
+
   .chart { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line); }
   .chart-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
   .chart-head h3 { margin: 0; font-size: 1.05rem; }
@@ -304,7 +339,54 @@
 <main class="wrap">
   <header class="intro">
     <h1>Plate Heatmap Generator</h1>
-    <p>Load a statistics CSV from your flow software, choose a variable, and see it colored across a 96-well or 384-well plate with each sample name on its well. Your file is read in this browser only and is never uploaded.</p>
+    <p>Turn a table of statistics into a plate map. Load a CSV from flow cytometry software or a plate reader, choose a variable, and every well is colored by its value on a 96- or 384-well plate, with the sample name on the well. From there you can normalize to reference wells, rank the samples in a bar chart, group replicates with standard deviation error bars, and save the figures. Everything runs in your browser. Your file is never uploaded.</p>
+
+    <div class="guide">
+      <ol class="quick" aria-label="Quick start">
+        <li><strong>Load your data.</strong> Choose a CSV, or try an example. Each row is a sample and each column a statistic.</li>
+        <li><strong>Check the plate.</strong> Pick 96 or 384 wells and how samples are placed. Fix any that landed in the wrong well by dragging.</li>
+        <li><strong>Pick a variable.</strong> The dropdown lists every numeric column. Colors, normalization and the chart all follow it.</li>
+        <li><strong>Refine and save.</strong> Set colors and labels under the plate, group replicates under the chart, then download.</li>
+      </ol>
+
+      <details>
+        <summary>Everything this tool can do</summary>
+        <dl>
+          <dt>Files it reads</dt>
+          <dd>Flow cytometry tables with one row per file, including FlowJo exports that have two header rows. Plate reader files in plate-grid layout (a row of 1–12 with rows A–H below, one or more blocks, each block becomes a variable) or list layout with a Well column. Comma, semicolon and tab separated files work, as do comma decimals. Rows named Mean, SD or CV are skipped. If the header is misread, change “Header row”.</dd>
+
+          <dt>Placing samples</dt>
+          <dd>“In file order” fills wells from a start well, across rows or down columns. “From a well column” and “From a well ID inside the sample name” read positions such as A1 or B07. The tool switches to 384 wells on its own when the data needs it. Changing these settings rebuilds the layout and clears manual moves.</dd>
+
+          <dt>Moving samples</dt>
+          <dd>Drag a well onto another to move its sample, or swap if that well is taken. Samples that do not fit on the plate, or that you take off it, wait in the tray under the plate, so drag them back when you want them. You can also select a well and choose its sample from the list.</dd>
+
+          <dt>Selecting several wells</dt>
+          <dd>Ctrl/Cmd-click to add or remove wells, Shift-click for a block, or click a row letter or column number for a whole line. With the keyboard, arrow keys move, Space toggles, Shift with arrows extends, Ctrl/Cmd+A selects all. Use the bar above the plate to move the selection off the plate (Delete works too) and undo it, or to group the wells as replicates.</dd>
+
+          <dt>Normalizing</dt>
+          <dd>Press “Pick reference wells” and click your controls (or a row letter or column number). Choose fold change, percent of reference, difference, or log2 fold change. Several reference wells are averaged for each variable. The “ref” mark follows the sample if you move it. Normalized values drive the colors, labels, chart and exports.</dd>
+
+          <dt>Colors</dt>
+          <dd>Pick a standard scale, or a fluorophore (FITC, PE, PE-Texas Red, APC, BV421, DAPI) so its color is the maximum. Change either end color to build your own, set a minimum and maximum, use a log scale (important for MFI), or reverse the colors.</dd>
+
+          <dt>Well labels</dt>
+          <dd>Show the sample name and value, either one, or nothing. You can hide “.fcs” and change the well size.</dd>
+
+          <dt>Ranked bar chart</dt>
+          <dd>Every sample on the plate is ranked from highest to lowest with labeled axes. Bars use the heatmap colors, reference wells are outlined, and hovering shows the details. It follows the variable, normalization and log scale, and moving a sample off the plate removes it from the chart.</dd>
+
+          <dt>Replicate groups</dt>
+          <dd>Under the chart, group replicates by sample name (for example C1_d100 and C1_d100(1)), by neighboring wells (such as triplicates A1–A3), or by hand with “Group as replicates”. Bars then show the group mean with error bars for the standard deviation (n − 1) or standard error, and you can add a dot for each replicate. Loading a new file clears the groups.</dd>
+
+          <dt>Saving</dt>
+          <dd>Download the plate as a PNG with its color legend, a layout CSV (well, sample, value, and normalization details), the chart as PNG or SVG, and the group statistics as a CSV.</dd>
+
+          <dt>Privacy</dt>
+          <dd>Your data stays in this browser tab. Nothing is uploaded and nothing is kept between visits, so reload and your file is gone.</dd>
+        </dl>
+      </details>
+    </div>
   </header>
 
   <div class="layout">
@@ -400,6 +482,9 @@
       <div class="selbar" id="selBar" role="region" aria-label="Selected wells" hidden>
         <span id="selText" aria-live="polite"></span>
         <button type="button" class="btn" id="moveOff">Move selected off plate</button>
+        <input type="text" id="grpName" placeholder="Group name (optional)" aria-label="Name for the new replicate group" maxlength="40" autocomplete="off" hidden>
+        <button type="button" class="btn ghost" id="groupSel" hidden>Group as replicates</button>
+        <button type="button" class="btn ghost" id="ungroupSel" hidden>Ungroup</button>
         <button type="button" class="btn ghost" id="clearSel">Clear selection</button>
         <button type="button" class="btn ghost" id="undoMove" hidden>Undo</button>
       </div>
@@ -408,7 +493,7 @@
         <div class="plate" id="plate" role="group" aria-label="Plate wells. Use arrow keys to move between wells."></div>
       </div>
 
-      <p class="hint" id="selHint">To select several wells, Ctrl/Cmd-click them, Shift-click for a block, or click a row letter or column number. Then press Delete or use “Move selected off plate”. Keyboard: arrow keys move, Space toggles a well, Shift+arrows extend, Ctrl/Cmd+A selects all.</p>
+      <p class="hint" id="selHint">To select several wells, Ctrl/Cmd-click them, Shift-click for a block, or click a row letter or column number. Then press Delete or use “Move selected off plate”, or choose “Group as replicates” for the bar chart. Keyboard: arrow keys move, Space toggles a well, Shift+arrows extend, Ctrl/Cmd+A selects all.</p>
 
       <div class="legend" id="legend" hidden>
         <div class="bar" id="legendBar"></div>
@@ -499,8 +584,45 @@
           <div class="btn-row">
             <button type="button" class="btn ghost" id="dlChartPng" disabled>Download chart PNG</button>
             <button type="button" class="btn ghost" id="dlChartSvg" disabled>Download chart SVG</button>
+            <button type="button" class="btn ghost" id="dlChartCsv" disabled>Download group stats CSV</button>
           </div>
         </div>
+        <div class="chart-opts">
+          <label class="field">
+            <span>Group replicates</span>
+            <select id="grpMode">
+              <option value="none">No grouping (one bar per sample)</option>
+              <option value="name">By sample name</option>
+              <option value="adj">By adjacent wells</option>
+              <option value="manual">My groups (select wells, then Group)</option>
+            </select>
+          </label>
+          <label class="field" id="grpPatWrap" style="display:none">
+            <span>Remove from the end of names</span>
+            <input type="text" id="grpPattern" value="[\s_.-]+rep(?:licate)?[\s_.-]*\d+|[\s_.-]+r\d+|\s*\(\d+\)" spellcheck="false" autocomplete="off">
+          </label>
+          <label class="field" id="grpNWrap" style="display:none">
+            <span>Wells per group</span>
+            <input type="number" id="grpN" min="2" max="12" step="1" value="3">
+          </label>
+          <label class="field" id="grpDirWrap" style="display:none">
+            <span>Group along</span>
+            <select id="grpDir">
+              <option value="row">Rows (A1, A2, A3…)</option>
+              <option value="col">Columns (A1, B1, C1…)</option>
+            </select>
+          </label>
+          <label class="field" id="errWrap" style="display:none">
+            <span>Error bars</span>
+            <select id="errMode">
+              <option value="sd">Standard deviation</option>
+              <option value="sem">Standard error (SEM)</option>
+              <option value="none">None</option>
+            </select>
+          </label>
+          <label class="check" id="ptsWrap" style="display:none"><input type="checkbox" id="showPts"> Show each replicate as a dot</label>
+        </div>
+        <p class="hint" id="grpHint"></p>
         <p class="hint" id="chartNote"></p>
         <div class="chart-scroll" id="chartScroll" tabindex="0" role="img" aria-label="Ranked bar chart"></div>
       </section>
@@ -547,13 +669,18 @@
     multi: new Set(),  // selected well ids
     anchor: null,      // well where a Shift-selection starts
     undo: null,        // last bulk removal, for Undo
-    msg: ''
+    msg: '',
+    groups: [],        // hand-made replicate groups: { id, name, members: Set of sample indexes }
+    gid: 0
   };
   var NORM_NAMES = {
     fold: 'Fold change vs reference', pct: 'Percent of reference',
     diff: 'Difference from reference', log2: 'Log2 fold change vs reference'
   };
   var NORM = { mode: 'none', active: false, ok: false, ref: null, n: 0, reason: '' };
+  var GROUPS = [];    // replicate groups for the samples now on the plate
+  var GROUP_OF = {};  // sample index -> its group (only groups with 2+ samples)
+  var patBad = false;
   var decComma = false;
 
   /* ---------- CSV parsing ---------- */
@@ -705,6 +832,7 @@
     var rows = S.rows, mx = parseMatrix(rows), hdr = $('hdrRow'), j;
     S.kindNote = '';
     $('normMode').value = 'none'; S.pick = false;
+    $('grpMode').value = 'none'; updateGrpUI();
     if (mx) {
       S.matrix = true; S.cols = mx.cols; S.raw = mx.raw;
       hdr.value = ''; hdr.disabled = true;
@@ -764,6 +892,7 @@
     var skip = /^(mean|sd|std\.?\s?dev\.?|cv|median)$/i;
     S.samples = [];
     S.refs = new Set();
+    S.groups = [];
     S.raw.forEach(function (r) {
       var name = (r[sc] || '').trim();
       if (!name || skip.test(name)) return;
@@ -976,6 +1105,7 @@
   /* ---------- Rendering ---------- */
   function render() {
     refreshNorm();
+    GROUPS = computeGroups();
     if (!S.sel) S.multi = new Set(); else if (!S.multi.size) S.multi.add(S.sel);
     var d = dims(), plate = $('plate'), sc = scaleInfo(), labelMode = $('labelMode').value;
     var hasData = S.samples.length > 0 && !isNaN(col());
@@ -1010,6 +1140,7 @@
           var s = S.samples[idx], v = valueAt(idx);
           desc += s.name + (v !== null ? ', ' + fmt(v) : ', no value');
           if (isRef(idx)) { b.classList.add('ref'); desc += ', reference well'; }
+          if (GROUP_OF[idx]) { b.classList.add('grp'); b.dataset.g = GROUP_OF[idx].num; desc += ', replicate group ' + GROUP_OF[idx].num + ' (' + GROUP_OF[idx].name + ')'; }
           if (v !== null && sc) {
             var rgbv = colorAt(tOf(v, sc));
             b.style.background = rgb(rgbv); b.style.color = inkFor(rgbv);
@@ -1184,9 +1315,102 @@
     S.multi = new Set(); S.sel = null;
     render();
   }
+  /* ---------- Replicate groups ---------- */
+  function manualGroupOf(idx) {
+    for (var k = 0; k < S.groups.length; k++) if (S.groups[k].members.has(idx)) return S.groups[k];
+    return null;
+  }
+  function stripName(name) {
+    var base = name.replace(/\.fcs$/i, ''), pat = $('grpPattern').value;
+    if (!pat) return base;
+    try { return base.replace(new RegExp('(?:' + pat + ')$', 'i'), '').trim() || base; } catch (e) { return base; }
+  }
+  /* Groups for the samples on the plate, in plate order. Samples with no partner become groups of one. */
+  function computeGroups() {
+    var mode = $('grpMode').value, d = dims(), r, c, placed = [], groups = [], byKey = {};
+    patBad = false;
+    if (mode === 'name') { try { new RegExp('(?:' + $('grpPattern').value + ')$', 'i'); } catch (e) { patBad = true; } }
+    $('grpPattern').setAttribute('aria-invalid', patBad ? 'true' : 'false');
+    var n = Math.max(2, Math.min(12, parseInt($('grpN').value, 10) || 3)), dir = $('grpDir').value;
+    for (r = 0; r < d.r; r++) for (c = 0; c < d.c; c++) {
+      var w = wellId(r, c), i = S.layout.get(w);
+      if (i !== undefined) placed.push({ idx: i, well: w, r: r, c: c });
+    }
+    placed.forEach(function (p) {
+      var s0 = S.samples[p.idx], key, name = shortName(s0.name);
+      if (mode === 'name') { name = stripName(s0.name); key = 'n:' + name; }
+      else if (mode === 'adj') {
+        key = dir === 'row' ? 'r' + p.r + ':' + Math.floor(p.c / n) : 'c' + p.c + ':' + Math.floor(p.r / n);
+        name = null;
+      } else if (mode === 'manual') {
+        var mg = manualGroupOf(p.idx);
+        if (mg) { key = 'm:' + mg.id; name = mg.name; } else key = 's:' + p.idx;
+      } else key = 's:' + p.idx;
+      var g = byKey[key];
+      if (!g) { g = { key: key, name: name, members: [] }; byKey[key] = g; groups.push(g); }
+      g.members.push(p);
+    });
+    var num = 0;
+    GROUP_OF = {};
+    groups.forEach(function (g) {
+      if (g.name === null) {
+        g.name = g.members.length > 1
+          ? g.members[0].well + '–' + g.members[g.members.length - 1].well
+          : shortName(S.samples[g.members[0].idx].name);
+      }
+      if (g.members.length > 1) { g.num = ++num; g.members.forEach(function (m) { GROUP_OF[m.idx] = g; }); }
+    });
+    return groups;
+  }
+  function updateGrpUI() {
+    var m = $('grpMode').value;
+    $('grpPatWrap').style.display = m === 'name' ? '' : 'none';
+    $('grpNWrap').style.display = $('grpDirWrap').style.display = m === 'adj' ? '' : 'none';
+    $('errWrap').style.display = $('ptsWrap').style.display = m === 'none' ? 'none' : '';
+    $('grpHint').textContent = {
+      none: '',
+      name: 'Samples whose names match once this ending is removed are grouped. The default handles “(1)”, “_rep2” and “_R3” but leaves names like “d100” alone. Leave it blank to group by the whole name.',
+      adj: 'Neighboring wells are grouped, starting from the first column (or row) of the plate. Wells without a sample are skipped.',
+      manual: 'Select wells on the plate (Ctrl/Cmd-click or Shift-click), then press “Group as replicates” in the bar above the plate. Ungrouped samples stay as single bars.'
+    }[m];
+  }
+  function groupSelected() {
+    var idxs = [];
+    S.multi.forEach(function (w) { var i = S.layout.get(w); if (i !== undefined) idxs.push(i); });
+    if (idxs.length < 2) { S.msg = 'Select at least two wells that hold samples to group them.'; render(); return; }
+    S.groups.forEach(function (g) { idxs.forEach(function (i) { g.members.delete(i); }); });
+    S.groups = S.groups.filter(function (g) { return g.members.size > 1; });
+    var name = $('grpName').value.trim(), k = 0;
+    if (!name) {
+      S.groups.forEach(function (g) { var m = /^Group (\d+)$/.exec(g.name); if (m) k = Math.max(k, +m[1]); });
+      name = 'Group ' + (k + 1);
+    }
+    S.gid++;
+    S.groups.push({ id: S.gid, name: name, members: new Set(idxs) });
+    $('grpName').value = ''; $('grpMode').value = 'manual'; updateGrpUI();
+    S.multi = new Set(); S.sel = null;
+    S.msg = idxs.length + ' samples grouped as “' + name + '”.';
+    render();
+  }
+  function ungroupSelected() {
+    var n = 0;
+    S.multi.forEach(function (w) {
+      var i = S.layout.get(w);
+      if (i === undefined) return;
+      S.groups.forEach(function (g) { if (g.members.delete(i)) n++; });
+    });
+    S.groups = S.groups.filter(function (g) { return g.members.size > 1; });
+    S.multi = new Set(); S.sel = null;
+    S.msg = n + (n === 1 ? ' sample' : ' samples') + ' removed from their groups.';
+    render();
+  }
+
   function renderSelBar() {
-    var bar = $('selBar'), n = S.multi.size, occ = 0;
-    S.multi.forEach(function (w) { if (S.layout.has(w)) occ++; });
+    var bar = $('selBar'), n = S.multi.size, occ = 0, grouped = false;
+    S.multi.forEach(function (w) {
+      var i = S.layout.get(w);
+      if (i !== undefined) { occ++; if (manualGroupOf(i)) grouped = true; }
+    });
     var show = n > 1 || S.undo || S.msg;
     if (!show) { bar.hidden = true; return; }
     bar.hidden = false;
@@ -1196,6 +1420,9 @@
     $('moveOff').hidden = n < 2;
     $('moveOff').disabled = !occ;
     $('moveOff').textContent = occ > 1 ? 'Move ' + occ + ' samples off plate' : 'Move selected off plate';
+    $('grpName').hidden = $('groupSel').hidden = n < 2;
+    $('groupSel').disabled = occ < 2;
+    $('ungroupSel').hidden = !(n > 1 && grouped);
     $('clearSel').hidden = n < 2;
     $('undoMove').hidden = !S.undo;
   }
@@ -1223,7 +1450,7 @@
   }
 
   /* ---------- Ranked bar chart ---------- */
-  var chartState = { svg: '', w: 0, h: 0 };
+  var chartState = { svg: '', w: 0, h: 0, items: [] };
   function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
   function trunc(t, n) { t = String(t); return t.length > n ? t.slice(0, Math.max(1, n - 1)) + '…' : t; }
   function fmtTick(t) { return Number(t.toPrecision(6)).toLocaleString('en-US', { maximumFractionDigits: 6 }); }
@@ -1251,30 +1478,53 @@
   }
   function renderChart(sc) {
     var sec = $('chartSection'), hasData = S.samples.length > 0 && !isNaN(col());
-    if (!hasData) { sec.hidden = true; chartState.svg = ''; return; }
+    if (!hasData) { sec.hidden = true; chartState = { svg: '', w: 0, h: 0, items: [] }; return; }
     sec.hidden = false;
-    var log = $('log').checked, items = [], skipped = 0, anyRef = false;
-    S.layout.forEach(function (idx, well) {
-      var v = valueAt(idx);
-      if (v === null || (log && v <= 0)) { skipped++; return; }
-      if (isRef(idx)) anyRef = true;
-      items.push({ idx: idx, well: well, v: v, name: shortName(S.samples[idx].name) });
+    var log = $('log').checked, mode = $('grpMode').value, errMode = $('errMode').value, showPts = $('showPts').checked;
+    var items = [], skipped = 0, anyRef = false;
+    GROUPS.forEach(function (g) {
+      var vs = [];
+      g.members.forEach(function (m) { var v = valueAt(m.idx); if (v !== null) vs.push(v); });
+      if (!vs.length) { skipped++; return; }
+      var cnt = vs.length, mean = vs.reduce(function (a, b) { return a + b; }, 0) / cnt;
+      if (log && mean <= 0) { skipped++; return; }
+      var sd = cnt > 1 ? Math.sqrt(vs.reduce(function (a, v) { return a + (v - mean) * (v - mean); }, 0) / (cnt - 1)) : null;
+      var sem = sd === null ? null : sd / Math.sqrt(cnt);
+      var err = errMode === 'sd' ? sd : errMode === 'sem' ? sem : null;
+      var ref = g.members.some(function (m) { return isRef(m.idx); });
+      if (ref) anyRef = true;
+      items.push({
+        name: g.name, v: mean, n: cnt, sd: sd, sem: sem, err: err, vals: vs, ref: ref,
+        wells: g.members.map(function (m) { return m.well; }),
+        samples: g.members.map(function (m) { return S.samples[m.idx].name; })
+      });
     });
     items.sort(function (a, b) { return b.v - a.v || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0); });
     var host = $('chartScroll'), note = $('chartNote');
-    $('dlChartPng').disabled = $('dlChartSvg').disabled = !items.length;
+    $('dlChartPng').disabled = $('dlChartSvg').disabled = $('dlChartCsv').disabled = !items.length;
     if (!items.length) {
-      host.innerHTML = ''; chartState.svg = '';
+      host.innerHTML = ''; chartState = { svg: '', w: 0, h: 0, items: [] };
       note.textContent = 'No sample on the plate has a value to rank for this variable.';
       return;
     }
-    var n = items.length, avail = Math.max(480, host.clientWidth || 900);
+    var n = items.length, grouped = items.some(function (it) { return it.n > 1; });
+    var totalN = items.reduce(function (a, it) { return a + it.n; }, 0);
+    var nMin = Infinity, nMax = 0;
+    items.forEach(function (it) { if (it.n > 1) { nMin = Math.min(nMin, it.n); nMax = Math.max(nMax, it.n); } });
+    var avail = Math.max(480, host.clientWidth || 900);
     var right = 24, top = 54, plotH = 300, fs = n > 150 ? 8 : 10;
 
-    var vals = items.map(function (it) { return it.v; }), vmin = Math.min.apply(null, vals), vmax = Math.max.apply(null, vals);
+    var highs = [], lows = [];
+    items.forEach(function (it) {
+      var e = it.n > 1 && it.err !== null ? it.err : 0;
+      highs.push(it.v + e); lows.push(it.v - e);
+      if (showPts && it.n > 1) it.vals.forEach(function (v) { highs.push(v); lows.push(v); });
+    });
+    var vmax = Math.max.apply(null, highs), vmin = Math.min.apply(null, lows);
     var ticks, lo, hi, yOf, base;
     if (log) {
-      lo = Math.pow(10, Math.floor(Math.log10(vmin))); hi = Math.pow(10, Math.ceil(Math.log10(vmax)));
+      var posLows = lows.filter(function (v) { return v > 0; });
+      lo = Math.pow(10, Math.floor(Math.log10(Math.min.apply(null, posLows)))); hi = Math.pow(10, Math.ceil(Math.log10(vmax)));
       if (hi <= lo) hi = lo * 10;
       ticks = logTicks(lo, hi);
       yOf = function (v) { return top + plotH * (1 - (Math.log10(v) - Math.log10(lo)) / (Math.log10(hi) - Math.log10(lo))); };
@@ -1297,10 +1547,19 @@
     var plotW = n * step, W = left + plotW + right, H = top + plotH + labH + 46;
 
     var varName = S.cols[col()] || 'Value';
-    var yLine2 = (NORM.ok ? NORM_NAMES[NORM.mode] : '') + (log ? (NORM.ok ? ', ' : '') + 'log scale' : '');
+    var errLabel = errMode === 'sd' ? 'SD' : 'SEM';
+    var yParts = [];
+    if (NORM.ok) yParts.push(NORM_NAMES[NORM.mode]);
+    if (grouped) yParts.push(errMode === 'none' ? 'mean' : 'mean ± ' + errLabel);
+    if (log) yParts.push('log scale');
+    var yLine2 = yParts.join(', ');
     var yLine1 = trunc(varName, Math.floor(plotH / 6.4));
     var yTitle = yLine1 + (yLine2 ? ' (' + yLine2 + ')' : '');
-    var sub = S.plate + '-well plate, ranked highest to lowest' + (NORM.ok ? ', ' + NORM_NAMES[NORM.mode].toLowerCase() : '');
+    var nTxt = nMin === nMax ? 'n = ' + nMin : 'n = ' + nMin + '–' + nMax;
+    var sub = S.plate + '-well plate, ranked highest to lowest' + (grouped ? ' by group mean' : '') +
+      (NORM.ok ? ', ' + NORM_NAMES[NORM.mode].toLowerCase() : '') +
+      (grouped && errMode !== 'none' ? '; error bars show the ' + (errMode === 'sd' ? 'standard deviation' : 'standard error of the mean') + ' (' + nTxt + ' per group)' : '');
+    sub = trunc(sub, Math.floor((W - left - right) / 5.6));
 
     var o = [];
     o.push('<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" font-family="Segoe UI, system-ui, -apple-system, sans-serif">');
@@ -1313,15 +1572,37 @@
       o.push('<line x1="' + (left - 4) + '" x2="' + left + '" y1="' + y.toFixed(1) + '" y2="' + y.toFixed(1) + '" stroke="#33414d"/>');
       o.push('<text x="' + (left - 8) + '" y="' + y.toFixed(1) + '" dy="0.35em" text-anchor="end" font-size="11" fill="#33414d">' + esc(fmtTick(t)) + '</text>');
     });
-    var bw = Math.max(6, step * 0.78);
+    var bw = Math.max(6, step * 0.78), dotR = n <= 60 ? 3 : 2;
     items.forEach(function (it, k) {
       var cx = left + k * step + step / 2, y = yOf(it.v), yt = Math.min(y, base), h = Math.max(1, Math.abs(y - base));
-      var fill = sc ? rgb(colorAt(tOf(it.v, sc))) : '#8fa3b3', ref = isRef(it.idx);
-      o.push('<g><title>' + esc(it.name + ' (' + it.well + '): ' + fmt(it.v)) + '</title><rect x="' + (cx - bw / 2).toFixed(1) + '" y="' + yt.toFixed(1) +
-        '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" fill="' + fill + '" stroke="' + (ref ? '#14202a' : 'rgba(0,0,0,0.35)') +
-        '" stroke-width="' + (ref ? 2 : 0.6) + '"/></g>');
+      var fill = sc ? rgb(colorAt(tOf(it.v, sc))) : '#8fa3b3';
+      var tip = it.name + ': ' + fmt(it.v);
+      if (it.n > 1) {
+        tip += (it.err !== null ? ' ± ' + fmt(it.err) + ' (' + errLabel + ')' : '') + ', n = ' + it.n;
+        tip += ' (' + it.wells.join(', ') + '); values: ' + it.vals.map(fmt).join(', ');
+      } else tip += ' (' + it.wells[0] + ')';
+      o.push('<g><title>' + esc(tip) + '</title><rect x="' + (cx - bw / 2).toFixed(1) + '" y="' + yt.toFixed(1) +
+        '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" fill="' + fill + '" stroke="' + (it.ref ? '#14202a' : 'rgba(0,0,0,0.35)') +
+        '" stroke-width="' + (it.ref ? 2 : 0.6) + '"/>');
+      var topMost = yt, botMost = yt + h;
+      if (it.n > 1 && it.err !== null) {
+        var yHi = yOf(it.v + it.err), yLo = (log && it.v - it.err <= 0) ? top + plotH : yOf(it.v - it.err), cap = Math.min(bw * 0.5, 10);
+        o.push('<path d="M' + cx.toFixed(1) + ' ' + yHi.toFixed(1) + 'V' + yLo.toFixed(1) +
+          'M' + (cx - cap / 2).toFixed(1) + ' ' + yHi.toFixed(1) + 'h' + cap.toFixed(1) +
+          'M' + (cx - cap / 2).toFixed(1) + ' ' + yLo.toFixed(1) + 'h' + cap.toFixed(1) +
+          '" stroke="#14202a" stroke-width="1.4" fill="none"/>');
+        topMost = Math.min(topMost, yHi); botMost = Math.max(botMost, yLo);
+      }
+      if (showPts && it.n > 1) {
+        it.vals.forEach(function (v, j) {
+          if (log && v <= 0) return;
+          var px = cx + ((j + 0.5) / it.n - 0.5) * bw * 0.7;
+          o.push('<circle cx="' + px.toFixed(1) + '" cy="' + yOf(v).toFixed(1) + '" r="' + dotR + '" fill="#ffffff" stroke="#14202a" stroke-width="1"/>');
+        });
+      }
+      o.push('</g>');
       if (n <= 30) {
-        o.push('<text x="' + cx.toFixed(1) + '" y="' + (it.v >= 0 ? yt - 4 : yt + h + 12).toFixed(1) + '" text-anchor="middle" font-size="10" fill="#18242f">' + esc(fmt(it.v)) + '</text>');
+        o.push('<text x="' + cx.toFixed(1) + '" y="' + (it.v >= 0 ? topMost - 5 : botMost + 12).toFixed(1) + '" text-anchor="middle" font-size="10" fill="#18242f">' + esc(fmt(it.v)) + '</text>');
       }
       o.push('<text transform="translate(' + cx.toFixed(1) + ',' + (top + plotH + 8) + ') rotate(-90)" text-anchor="end" dy="0.35em" font-size="' + fs + '" fill="#33414d">' + esc(labels[k]) + '</text>');
     });
@@ -1333,16 +1614,41 @@
     } else {
       o.push('<text transform="translate(18,' + (top + plotH / 2) + ') rotate(-90)" text-anchor="middle" font-size="12" font-weight="600" fill="#18242f">' + esc(yLine1) + '</text>');
     }
-    o.push('<text x="' + left + '" y="' + (H - 14) + '" font-size="12" font-weight="600" fill="#18242f">Samples, ranked from highest to lowest (n = ' + n + ')</text>');
+    o.push('<text x="' + left + '" y="' + (H - 14) + '" font-size="12" font-weight="600" fill="#18242f">' +
+      (grouped ? 'Replicate groups, ranked from highest to lowest mean (' + n + ' groups, ' + totalN + ' samples)'
+               : 'Samples, ranked from highest to lowest (n = ' + n + ')') + '</text>');
     o.push('</svg>');
 
-    chartState = { svg: o.join(''), w: W, h: H };
+    chartState = { svg: o.join(''), w: W, h: H, items: items };
     host.innerHTML = chartState.svg;
-    host.setAttribute('aria-label', 'Bar chart of ' + n + ' samples ranked from highest, ' + items[0].name + ' at ' + fmt(items[0].v) +
+    host.setAttribute('aria-label', 'Bar chart of ' + n + (grouped ? ' replicate groups ranked by mean' : ' samples ranked') + ' from highest, ' + items[0].name + ' at ' + fmt(items[0].v) +
       ', to lowest, ' + items[n - 1].name + ' at ' + fmt(items[n - 1].v) + '. Vertical axis: ' + yTitle + '.');
-    note.textContent = n + (n === 1 ? ' sample' : ' samples') + ' ranked from highest to lowest' +
-      (skipped ? ' (' + skipped + ' without a plottable value left out)' : '') +
-      '. Bars use the heatmap colors' + (anyRef ? ', and a dark outline marks reference wells' : '') + '. Hover a bar for its sample, well and value.';
+
+    var msg = grouped
+      ? n + ' groups (' + totalN + ' samples) ranked from highest to lowest mean'
+      : n + (n === 1 ? ' sample' : ' samples') + ' ranked from highest to lowest';
+    if (skipped) msg += ' (' + skipped + ' without a plottable value left out)';
+    msg += '. Bars use the heatmap colors' + (anyRef ? ', and a dark outline marks groups that include a reference well' : '') + '.';
+    if (grouped && errMode !== 'none') {
+      msg += ' Error bars show the ' + (errMode === 'sd' ? 'sample standard deviation (n − 1)' : 'standard error of the mean') + (showPts ? ', and dots show each replicate' : '') + '.';
+      if (items.some(function (it) { return it.n === 1; })) msg += ' Single-sample bars have no error bar.';
+    }
+    if (mode === 'manual' && !S.groups.length) msg += ' No groups yet: select wells on the plate and press “Group as replicates”.';
+    if (mode !== 'none' && !grouped && mode !== 'manual') msg += ' No samples matched as replicates with these settings.';
+    if (patBad) msg += ' The name ending is not a valid pattern, so names were not changed.';
+    note.textContent = msg + ' Hover a bar for its details.';
+  }
+
+  function exportGroupCSV() {
+    if (!chartState.items.length) return;
+    var head = ['Rank', 'Group', 'Samples (n)', 'Mean of ' + (S.cols[col()] || 'value') + (NORM.ok ? ' (' + NORM_NAMES[NORM.mode].toLowerCase() + ')' : ''),
+      'SD', 'SEM', 'Wells', 'Sample names'].map(csvCell);
+    var lines = [head.join(',')];
+    chartState.items.forEach(function (it, k) {
+      lines.push([k + 1, csvCell(it.name), it.n, it.v, it.sd === null ? '' : it.sd, it.sem === null ? '' : it.sem,
+        csvCell(it.wells.join(' ')), csvCell(it.samples.join('; '))].join(','));
+    });
+    download(new Blob([lines.join('\n') + '\n'], { type: 'text/csv' }), baseName() + '_group_stats.csv');
   }
 
   function exportChartSVG() {
@@ -1736,11 +2042,20 @@
     $('moveOff').addEventListener('click', function () { moveOff(); });
     $('clearSel').addEventListener('click', function () { applySelection(new Set(), null, null); });
     $('undoMove').addEventListener('click', undoMove);
+    $('grpMode').addEventListener('change', function () { updateGrpUI(); render(); });
+    ['grpPattern', 'grpN', 'grpDir', 'errMode', 'showPts'].forEach(function (id) {
+      $(id).addEventListener('input', render);
+      $(id).addEventListener('change', render);
+    });
+    $('groupSel').addEventListener('click', groupSelected);
+    $('ungroupSel').addEventListener('click', ungroupSelected);
+    $('dlChartCsv').addEventListener('click', exportGroupCSV);
     $('dlChartPng').addEventListener('click', exportChartPNG);
     $('dlChartSvg').addEventListener('click', exportChartSVG);
     $('dlPng').addEventListener('click', exportPNG);
     $('dlCsv').addEventListener('click', exportCSV);
 
+    updateGrpUI();
     fit();
     render();
   }
