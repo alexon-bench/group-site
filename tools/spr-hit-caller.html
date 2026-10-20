@@ -5,6 +5,71 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
+/* MTECH TOP BAR STYLES START: copy this block unchanged into every tool */
+.site-header {
+  width: 100%;
+  border-bottom: 1px solid #dadcd7;
+  background: rgba(245, 245, 241, 0.94);
+}
+
+.header-inner {
+  display: flex;
+  width: min(1120px, calc(100% - 48px));
+  min-height: 76px;
+  margin-inline: auto;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  color: #141615;
+  font-size: 1.02rem;
+  font-weight: 760;
+  letter-spacing: -0.02em;
+  text-decoration: none;
+}
+
+.brand-mark {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 7px;
+  background: #141615;
+  color: white;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  color: #626763;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.site-nav a {
+  color: inherit;
+  font-weight: inherit;
+  text-decoration: none;
+  transition: color 150ms ease;
+}
+
+.site-nav a:hover,
+.site-nav a:focus-visible { color: #315cf5; }
+
+@media (max-width: 560px) {
+  .header-inner { width: min(100% - 28px, 1120px); min-height: 68px; }
+  .site-nav { gap: 16px; }
+  .site-nav a:nth-child(2) { display: none; }
+}
+/* MTECH TOP BAR STYLES END */
+
 /* Layout: summary first, then numbered setup steps (runs → schedule → roles), a shared curve viewer, and the results. One column, wide tables scroll inside their own boxes. */
 :root {
   --bg: #f3f6f6; --surface: #ffffff; --raised: #f7f9fa; --ink: #14212a; --muted: #56676f; --faint: #8a98a0; --line: #d8e0e3; --line-strong: #b9c6cc;
@@ -126,6 +191,22 @@ textarea { width: 100%; min-height: 140px; font-family: var(--f-mono); font-size
 .empty { padding: 26px 16px; text-align: center; color: var(--muted); font-size: .9rem; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
+
+<!-- MTECH TOP BAR START: copy this block unchanged into every tool -->
+<header class="site-header" data-mtech-nav="v1">
+  <div class="header-inner">
+    <a class="brand" href="../index.html" aria-label="MTech home">
+      <span class="brand-mark" aria-hidden="true">M</span>
+      <span>MTech</span>
+    </a>
+    <nav class="site-nav" aria-label="Main navigation">
+      <a href="../index.html#tools">Tools</a>
+      <a href="../index.html#contribute">Contribute</a>
+      <a href="https://github.com/alexon-bench/group-site" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+    </nav>
+  </div>
+</header>
+<!-- MTECH TOP BAR END -->
 
 <div class="wrap">
   <header class="top">
