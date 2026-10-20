@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>96- or 384-Well Plate Heatmap Generator</title>
+<title>Plate Heatmap Generator | MTech</title>
 
 <style>
       /* MTECH TOP BAR STYLES START: copy this block unchanged into every tool */
@@ -96,7 +96,7 @@
   .intro p { margin: 0; max-width: 70ch; color: var(--muted); }
   .layout {
     display: grid;
-    grid-template-columns: 340px minmax(0, 1fr);
+    grid-template-columns: 296px minmax(0, 1fr);
     gap: 20px;
     margin-top: 22px;
     align-items: start;
@@ -107,13 +107,14 @@
     background: var(--panel);
     border: 1px solid var(--line);
     border-radius: 10px;
-    padding: 6px 18px 18px;
+    padding: 2px 14px 14px;
   }
-  fieldset { border: 0; padding: 0; margin: 14px 0 0; min-width: 0; }
-  legend { font-weight: 700; font-size: 1rem; padding: 0; margin-bottom: 8px; }
-  fieldset + fieldset { border-top: 1px solid var(--line); padding-top: 4px; }
-  .field { display: block; margin-top: 10px; }
-  .field > span, .label { display: block; font-size: 0.86rem; color: var(--muted); margin-bottom: 3px; }
+  .controls { font-size: 0.9rem; }
+  fieldset { border: 0; padding: 0; margin: 10px 0 0; min-width: 0; }
+  legend { font-weight: 700; font-size: 0.95rem; padding: 0; margin-bottom: 2px; }
+  fieldset + fieldset { border-top: 1px solid var(--line); padding-top: 8px; }
+  .field { display: block; margin-top: 6px; min-width: 0; }
+  .field > span, .label { display: block; font-size: 0.78rem; color: var(--muted); margin-bottom: 2px; }
   select, input[type="text"], input[type="number"], input[type="file"] {
     width: 100%;
     font: inherit;
@@ -121,14 +122,16 @@
     background: #fff;
     border: 1px solid #9eacb7;
     border-radius: 6px;
-    padding: 7px 8px;
+    padding: 4px 7px;
+    font-size: 0.88rem;
   }
-  input[type="file"] { padding: 6px; }
-  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .check { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
-  .check input { width: 18px; height: 18px; accent-color: var(--accent); }
+  input[type="file"] { padding: 3px 5px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .check { display: flex; gap: 7px; align-items: center; margin-top: 6px; }
+  .check input { width: 16px; height: 16px; accent-color: var(--accent); }
+  .checks { display: flex; flex-wrap: wrap; gap: 0 18px; }
   input[type="range"] { width: 100%; accent-color: var(--accent); }
-  .hint { font-size: 0.82rem; color: var(--muted); margin: 6px 0 0; }
+  .hint { font-size: 0.76rem; line-height: 1.35; color: var(--muted); margin: 4px 0 0; }
 
   button, .btn {
     font: inherit;
@@ -139,19 +142,20 @@
     color: #fff;
     border: 1px solid var(--accent);
     border-radius: 6px;
-    padding: 8px 12px;
+    padding: 5px 10px;
+    font-size: 0.88rem;
     font-weight: 600;
   }
   .btn.ghost { background: #fff; color: var(--accent); }
   .btn:disabled { opacity: 0.45; cursor: not-allowed; }
-  .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .btn-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
 
   :focus-visible { outline: 3px solid #f0a000; outline-offset: 2px; }
 
   .seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #9eacb7; border-radius: 6px; overflow: hidden; }
   .seg label { position: relative; }
   .seg input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
-  .seg span { display: block; text-align: center; padding: 8px 6px; font-weight: 600; background: #fff; }
+  .seg span { display: block; text-align: center; padding: 4px 6px; font-size: 0.88rem; font-weight: 600; background: #fff; }
   .seg label + label span { border-left: 1px solid #9eacb7; }
   .seg input:checked + span { background: var(--accent); color: #fff; }
   .seg input:focus-visible + span { outline: 3px solid #f0a000; outline-offset: -3px; }
@@ -220,7 +224,7 @@
   .unplaced { margin-top: 14px; font-size: 0.88rem; color: var(--muted); overflow-wrap: anywhere; }
   .unplaced strong { color: var(--ink); }
 
-  input[type="color"] { width: 100%; height: 38px; padding: 2px; border: 1px solid #9eacb7; border-radius: 6px; background: #fff; cursor: pointer; }
+  input[type="color"] { width: 100%; height: 28px; padding: 2px; border: 1px solid #9eacb7; border-radius: 6px; background: #fff; cursor: pointer; }
 
   /* Drag and drop */
   .well[draggable="true"] { cursor: grab; }
@@ -249,6 +253,31 @@
   .chip:hover { border-color: var(--accent); }
   .chips .empty-note { margin: 0; font-size: 0.85rem; color: var(--muted); align-self: center; }
 
+  .axis[data-axis] { cursor: pointer; }
+  .axis[data-axis]:hover { color: var(--accent); text-decoration: underline; }
+  .selbar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+    margin-top: 12px; padding: 10px 12px; font-size: 0.92rem;
+    background: var(--accent-soft); border: 1px solid #9cc9ca; border-radius: 8px;
+  }
+  .selbar[hidden] { display: none; }
+  .selbar > span { flex: 1 1 220px; }
+  .selbar .btn { padding: 6px 10px; }
+
+  .display {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 4px 22px;
+    margin-top: 16px; padding-top: 6px; border-top: 1px solid var(--line); font-size: 0.9rem;
+  }
+  .display fieldset, .display fieldset + fieldset { border-top: 0; padding-top: 0; }
+  .display .hint { margin-top: 6px; }
+
+  .chart { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--line); }
+  .chart-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+  .chart-head h3 { margin: 0; font-size: 1.05rem; }
+  .chart-head .btn-row { margin-top: 0; }
+  .chart-scroll { overflow-x: auto; margin-top: 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+  .chart-scroll svg { display: block; max-width: none; }
+
   @media (prefers-reduced-motion: reduce) {
     * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
   }
@@ -274,8 +303,8 @@
 
 <main class="wrap">
   <header class="intro">
-    <h1>96- or 384-Well Plate Heatmap Generator</h1>
-    <p>Load a statistics CSV from your analysis software (i.e. <a href="https://floreada.io/analysis">Floreada.io</a>), choose a variable, and see it colored across a 96-well or 384-well plate with each sample name on its well. Your file is read in this browser only and is never uploaded.</p>
+    <h1>Plate Heatmap Generator</h1>
+    <p>Load a statistics CSV from your flow software, choose a variable, and see it colored across a 96-well or 384-well plate with each sample name on its well. Your file is read in this browser only and is never uploaded.</p>
   </header>
 
   <div class="layout">
@@ -287,18 +316,20 @@
           <span>CSV file</span>
           <input type="file" id="file" accept=".csv,.tsv,.txt,text/csv,text/plain">
         </label>
-        <div class="btn-row" style="margin-top:8px">
-          <button type="button" class="btn ghost" id="exFlow">Flow cytometry example</button>
+        <div class="btn-row">
+          <button type="button" class="btn ghost" id="exFlow">Flow example</button>
           <button type="button" class="btn ghost" id="exReader">Plate reader example</button>
         </div>
-        <label class="field">
-          <span>Sample name column</span>
-          <select id="sampleCol" disabled></select>
-        </label>
-        <label class="field">
-          <span>Header row number (0 = no header)</span>
-          <input type="number" id="hdrRow" min="0" step="1" disabled>
-        </label>
+        <div class="row2">
+          <label class="field">
+            <span>Sample name column</span>
+            <select id="sampleCol" disabled></select>
+          </label>
+          <label class="field">
+            <span>Header row (0 = none)</span>
+            <input type="number" id="hdrRow" min="0" step="1" disabled>
+          </label>
+        </div>
         <label class="field">
           <span>Variable to display</span>
           <select id="variable" disabled></select>
@@ -336,7 +367,7 @@
             </select>
           </label>
         </div>
-        <p class="hint" id="placeHint">Changing these settings rebuilds the layout and clears manual edits. Drag samples between wells, or select a well to pick its sample from a list.</p>
+        <p class="hint" id="placeHint">Changing these rebuilds the layout and clears manual moves.</p>
       </fieldset>
 
       <fieldset>
@@ -351,69 +382,11 @@
             <option value="log2">Log2 fold change</option>
           </select>
         </label>
-        <div class="btn-row" style="margin-top:10px">
+        <div class="btn-row">
           <button type="button" class="btn ghost" id="pickRef" aria-pressed="false">Pick reference wells</button>
           <button type="button" class="btn ghost" id="clearRef" disabled>Clear references</button>
         </div>
-        <p class="hint">While picking, click wells to mark or unmark them, or click a row letter or column number to toggle that whole line. Several reference wells are averaged for each variable. The mark follows the sample if you move it.</p>
-      </fieldset>
-
-      <fieldset>
-        <legend>Colors</legend>
-        <label class="field">
-          <span>Color scale</span>
-          <select id="palette"></select>
-        </label>
-        <div class="row2">
-          <label class="field">
-            <span>Low-end color</span>
-            <input type="color" id="colLow" value="#440154">
-          </label>
-          <label class="field">
-            <span>High-end color</span>
-            <input type="color" id="colHigh" value="#fde725">
-          </label>
-        </div>
-        <p class="hint">Pick a fluorophore to make its color the maximum, or change either color to build your own scale. The PNG uses the same colors.</p>
-        <div class="row2">
-          <label class="field">
-            <span>Minimum (blank = auto)</span>
-            <input type="number" id="min" step="any" inputmode="decimal">
-          </label>
-          <label class="field">
-            <span>Maximum (blank = auto)</span>
-            <input type="number" id="max" step="any" inputmode="decimal">
-          </label>
-        </div>
-        <label class="check"><input type="checkbox" id="log"> Log scale</label>
-        <label class="check"><input type="checkbox" id="reverse"> Reverse colors</label>
-      </fieldset>
-
-      <fieldset>
-        <legend>Well labels</legend>
-        <label class="field">
-          <span>Show on each well</span>
-          <select id="labelMode">
-            <option value="both">Sample name and value</option>
-            <option value="name">Sample name only</option>
-            <option value="val">Value only</option>
-            <option value="none">Nothing</option>
-          </select>
-        </label>
-        <label class="check"><input type="checkbox" id="hideExt" checked> Hide “.fcs” in names</label>
-        <label class="field">
-          <span>Well size</span>
-          <input type="range" id="cell" min="26" max="120" value="60" aria-label="Well size">
-        </label>
-      </fieldset>
-
-      <fieldset>
-        <legend>Save</legend>
-        <div class="btn-row" style="margin-top:0">
-          <button type="button" class="btn" id="dlPng" disabled>Download PNG</button>
-          <button type="button" class="btn ghost" id="dlCsv" disabled>Download layout CSV</button>
-        </div>
-        <p class="hint">Files are created in your browser and saved through your normal download prompt. Nothing is stored between visits.</p>
+        <p class="hint">While picking, click wells, or a row letter or column number, to mark or unmark them. Several references are averaged. The mark follows the sample if you move it.</p>
       </fieldset>
     </div>
 
@@ -424,13 +397,84 @@
       </div>
       <ul class="notes" id="notes" aria-live="polite"></ul>
 
+      <div class="selbar" id="selBar" role="region" aria-label="Selected wells" hidden>
+        <span id="selText" aria-live="polite"></span>
+        <button type="button" class="btn" id="moveOff">Move selected off plate</button>
+        <button type="button" class="btn ghost" id="clearSel">Clear selection</button>
+        <button type="button" class="btn ghost" id="undoMove" hidden>Undo</button>
+      </div>
+
       <div class="plate-scroll" id="plateScroll">
         <div class="plate" id="plate" role="group" aria-label="Plate wells. Use arrow keys to move between wells."></div>
       </div>
 
+      <p class="hint" id="selHint">To select several wells, Ctrl/Cmd-click them, Shift-click for a block, or click a row letter or column number. Then press Delete or use “Move selected off plate”. Keyboard: arrow keys move, Space toggles a well, Shift+arrows extend, Ctrl/Cmd+A selects all.</p>
+
       <div class="legend" id="legend" hidden>
         <div class="bar" id="legendBar"></div>
         <div class="ends"><span id="legLo"></span><span id="legMid"></span><span id="legHi"></span></div>
+      </div>
+
+      <div class="display" role="group" aria-label="Display and save options">
+        <fieldset>
+          <legend>Colors</legend>
+          <label class="field">
+            <span>Color scale</span>
+            <select id="palette"></select>
+          </label>
+          <div class="row2">
+            <label class="field">
+              <span>Low-end color</span>
+              <input type="color" id="colLow" value="#440154">
+            </label>
+            <label class="field">
+              <span>High-end color</span>
+              <input type="color" id="colHigh" value="#fde725">
+            </label>
+          </div>
+          <div class="row2">
+            <label class="field">
+              <span>Minimum (blank = auto)</span>
+              <input type="number" id="min" step="any" inputmode="decimal">
+            </label>
+            <label class="field">
+              <span>Maximum (blank = auto)</span>
+              <input type="number" id="max" step="any" inputmode="decimal">
+            </label>
+          </div>
+          <div class="checks">
+            <label class="check"><input type="checkbox" id="log"> Log scale</label>
+            <label class="check"><input type="checkbox" id="reverse"> Reverse colors</label>
+          </div>
+          <p class="hint">Pick a fluorophore to make its color the maximum, or change either color to build your own. The PNG uses the same colors.</p>
+        </fieldset>
+
+        <fieldset>
+          <legend>Well labels</legend>
+          <label class="field">
+            <span>Show on each well</span>
+            <select id="labelMode">
+              <option value="both">Sample name and value</option>
+              <option value="name">Sample name only</option>
+              <option value="val">Value only</option>
+              <option value="none">Nothing</option>
+            </select>
+          </label>
+          <label class="check"><input type="checkbox" id="hideExt" checked> Hide “.fcs” in names</label>
+          <label class="field">
+            <span>Well size</span>
+            <input type="range" id="cell" min="26" max="120" value="60" aria-label="Well size">
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Save</legend>
+          <div class="btn-row" style="margin-top:4px">
+            <button type="button" class="btn" id="dlPng" disabled>Download PNG</button>
+            <button type="button" class="btn ghost" id="dlCsv" disabled>Download layout CSV</button>
+          </div>
+          <p class="hint">Saved through your normal download prompt. Nothing is stored between visits.</p>
+        </fieldset>
       </div>
 
       <div class="editor" id="editor" hidden>
@@ -446,8 +490,20 @@
       <div class="tray" id="tray" hidden>
         <h3 id="trayTitle">Not on the plate</h3>
         <div class="chips" id="chips"></div>
-        <p class="hint">Drag a sample onto a well to place it. Dropping on an occupied well swaps the two samples. Drag a sample from a well back here to take it off the plate. On touch screens, select a well and click a sample here instead.</p>
+        <p class="hint">Drag a sample onto a well to place it. Dropping on an occupied well swaps the two samples. Drag a sample from a well back here to take it off the plate. To take off several at once, select them and use the bar above the plate, or drag any selected well here. On touch screens, select a well and click a sample here instead.</p>
       </div>
+
+      <section class="chart" id="chartSection" aria-labelledby="chartTitle" hidden>
+        <div class="chart-head">
+          <h3 id="chartTitle">Ranked bar chart</h3>
+          <div class="btn-row">
+            <button type="button" class="btn ghost" id="dlChartPng" disabled>Download chart PNG</button>
+            <button type="button" class="btn ghost" id="dlChartSvg" disabled>Download chart SVG</button>
+          </div>
+        </div>
+        <p class="hint" id="chartNote"></p>
+        <div class="chart-scroll" id="chartScroll" tabindex="0" role="img" aria-label="Ranked bar chart"></div>
+      </section>
     </section>
   </div>
 </main>
@@ -487,7 +543,11 @@
     drag: null,
     refs: new Set(),   // reference sample indexes (the mark follows the sample)
     pick: false,
-    focusWell: null
+    focusWell: null,
+    multi: new Set(),  // selected well ids
+    anchor: null,      // well where a Shift-selection starts
+    undo: null,        // last bulk removal, for Undo
+    msg: ''
   };
   var NORM_NAMES = {
     fold: 'Fold change vs reference', pct: 'Percent of reference',
@@ -774,6 +834,7 @@
   var layoutInfo = { dupes: 0, noWell: 0, startBad: false };
 
   function rebuildLayout() {
+    S.undo = null; S.msg = '';
     var d = dims();
     S.layout = new Map();
     layoutInfo = { dupes: 0, noWell: 0, startBad: false };
@@ -915,6 +976,7 @@
   /* ---------- Rendering ---------- */
   function render() {
     refreshNorm();
+    if (!S.sel) S.multi = new Set(); else if (!S.multi.size) S.multi.add(S.sel);
     var d = dims(), plate = $('plate'), sc = scaleInfo(), labelMode = $('labelMode').value;
     var hasData = S.samples.length > 0 && !isNaN(col());
     plate.innerHTML = '';
@@ -960,7 +1022,7 @@
           }
         }
         b.title = desc; b.setAttribute('aria-label', desc);
-        if (id === S.sel) { b.classList.add('sel'); b.setAttribute('aria-pressed', 'true'); } else b.setAttribute('aria-pressed', 'false');
+        if (S.multi.has(id)) { b.classList.add('sel'); b.setAttribute('aria-pressed', 'true'); } else b.setAttribute('aria-pressed', 'false');
         plate.appendChild(b);
       }
     }
@@ -1004,6 +1066,8 @@
 
     renderEditor();
     renderTray();
+    renderSelBar();
+    renderChart(sc);
     $('dlPng').disabled = !hasData;
     $('dlCsv').disabled = !hasData;
     $('pickRef').setAttribute('aria-pressed', String(S.pick));
@@ -1038,7 +1102,7 @@
 
   function renderEditor() {
     var ed = $('editor');
-    if (!S.sel || !S.samples.length) { ed.hidden = true; return; }
+    if (!S.sel || S.multi.size !== 1 || !S.samples.length) { ed.hidden = true; return; }
     ed.hidden = false;
     $('edTitle').textContent = 'Well ' + S.sel;
     var sel = $('edSample'); sel.innerHTML = '';
@@ -1059,8 +1123,85 @@
     $('edRef').disabled = cur === undefined;
   }
 
+  function applySelection(set, active, focusId) {
+    S.multi = set; S.sel = active; S.msg = '';
+    render();
+    if (focusId) { var b = $('plate').querySelector('[data-well="' + focusId + '"]'); if (b) b.focus(); }
+  }
+  function selectRect(a, b) {
+    var A = parseWellRaw(a), B = parseWellRaw(b), set = new Set(), r, c;
+    if (!A || !B) return set;
+    for (r = Math.min(A.r, B.r); r <= Math.max(A.r, B.r); r++)
+      for (c = Math.min(A.c, B.c); c <= Math.max(A.c, B.c); c++) set.add(wellId(r, c));
+    return set;
+  }
+  /* Plain click = just this well. Ctrl/Cmd = toggle. Shift = block from the anchor. */
+  function selectFromClick(id, mods) {
+    var set, additive = mods.ctrlKey || mods.metaKey;
+    if (mods.shiftKey && S.anchor) {
+      set = selectRect(S.anchor, id);
+      if (additive) S.multi.forEach(function (w) { set.add(w); });
+    } else if (additive) {
+      set = new Set(S.multi);
+      if (set.has(id)) set.delete(id); else set.add(id);
+      S.anchor = id;
+    } else {
+      set = new Set([id]); S.anchor = id;
+    }
+    var active = set.has(id) ? id : (set.size ? Array.from(set).pop() : null);
+    applySelection(set, active, id);
+  }
+  function selectLine(kind, i, additive) {
+    var d = dims(), set = additive ? new Set(S.multi) : new Set(), k, last = null;
+    for (k = 0; k < (kind === 'row' ? d.c : d.r); k++) {
+      last = kind === 'row' ? wellId(i, k) : wellId(k, i);
+      set.add(last);
+    }
+    S.anchor = kind === 'row' ? wellId(i, 0) : wellId(0, i);
+    applySelection(set, last, null);
+  }
+  /* Take samples off the plate (they wait in the tray). Defaults to the selected wells. */
+  function moveOff(wells) {
+    var ids = wells || Array.from(S.multi), removed = [];
+    ids.forEach(function (w) {
+      var i = S.layout.get(w);
+      if (i !== undefined) { removed.push({ well: w, idx: i }); S.layout.delete(w); }
+    });
+    if (!removed.length) { S.msg = 'The selected wells are empty, so nothing was moved.'; render(); return; }
+    S.undo = removed;
+    S.msg = removed.length + (removed.length === 1 ? ' sample' : ' samples') + ' moved off the plate.';
+    S.multi = new Set(); S.sel = null;
+    render();
+  }
+  function undoMove() {
+    if (!S.undo) return;
+    var n = 0;
+    S.undo.forEach(function (x) {
+      if (!S.layout.has(x.well) && wellOf(x.idx) === null) { S.layout.set(x.well, x.idx); n++; }
+    });
+    S.undo = null;
+    S.msg = n + (n === 1 ? ' sample' : ' samples') + ' put back.';
+    S.multi = new Set(); S.sel = null;
+    render();
+  }
+  function renderSelBar() {
+    var bar = $('selBar'), n = S.multi.size, occ = 0;
+    S.multi.forEach(function (w) { if (S.layout.has(w)) occ++; });
+    var show = n > 1 || S.undo || S.msg;
+    if (!show) { bar.hidden = true; return; }
+    bar.hidden = false;
+    $('selText').textContent = n > 1
+      ? n + ' wells selected, ' + occ + (occ === 1 ? ' with a sample.' : ' with samples.')
+      : S.msg;
+    $('moveOff').hidden = n < 2;
+    $('moveOff').disabled = !occ;
+    $('moveOff').textContent = occ > 1 ? 'Move ' + occ + ' samples off plate' : 'Move selected off plate';
+    $('clearSel').hidden = n < 2;
+    $('undoMove').hidden = !S.undo;
+  }
+
   function selectWell(id, focus) {
-    S.sel = id;
+    S.sel = id; S.multi = new Set([id]); S.anchor = id; S.msg = '';
     render();
     if (focus) { var b = $('plate').querySelector('[data-well="' + id + '"]'); if (b) b.focus(); }
   }
@@ -1079,6 +1220,153 @@
     }
     S.focusWell = null;
     toggleRef(ids);
+  }
+
+  /* ---------- Ranked bar chart ---------- */
+  var chartState = { svg: '', w: 0, h: 0 };
+  function esc(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function trunc(t, n) { t = String(t); return t.length > n ? t.slice(0, Math.max(1, n - 1)) + '…' : t; }
+  function fmtTick(t) { return Number(t.toPrecision(6)).toLocaleString('en-US', { maximumFractionDigits: 6 }); }
+  function niceNum(x, round) {
+    var e = Math.floor(Math.log10(x)), f = x / Math.pow(10, e), n;
+    if (round) n = f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10;
+    else n = f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10;
+    return n * Math.pow(10, e);
+  }
+  function linTicks(lo, hi) {
+    var step = niceNum((hi - lo) / 5, true), a = Math.floor(lo / step + 1e-9) * step, b = Math.ceil(hi / step - 1e-9) * step;
+    var n = Math.round((b - a) / step), t = [], k;
+    for (k = 0; k <= n; k++) t.push(+(a + k * step).toPrecision(12));
+    return { ticks: t, lo: a, hi: b };
+  }
+  function logTicks(lo, hi) {
+    var decades = Math.round(Math.log10(hi / lo)), t = [], d, m, mults = decades <= 2 ? [1, 2, 5] : [1];
+    for (d = Math.round(Math.log10(lo)); d <= Math.round(Math.log10(hi)); d++) {
+      for (m = 0; m < mults.length; m++) {
+        var v = +(mults[m] * Math.pow(10, d)).toPrecision(12);
+        if (v >= lo * 0.999 && v <= hi * 1.001) t.push(v);
+      }
+    }
+    return t;
+  }
+  function renderChart(sc) {
+    var sec = $('chartSection'), hasData = S.samples.length > 0 && !isNaN(col());
+    if (!hasData) { sec.hidden = true; chartState.svg = ''; return; }
+    sec.hidden = false;
+    var log = $('log').checked, items = [], skipped = 0, anyRef = false;
+    S.layout.forEach(function (idx, well) {
+      var v = valueAt(idx);
+      if (v === null || (log && v <= 0)) { skipped++; return; }
+      if (isRef(idx)) anyRef = true;
+      items.push({ idx: idx, well: well, v: v, name: shortName(S.samples[idx].name) });
+    });
+    items.sort(function (a, b) { return b.v - a.v || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0); });
+    var host = $('chartScroll'), note = $('chartNote');
+    $('dlChartPng').disabled = $('dlChartSvg').disabled = !items.length;
+    if (!items.length) {
+      host.innerHTML = ''; chartState.svg = '';
+      note.textContent = 'No sample on the plate has a value to rank for this variable.';
+      return;
+    }
+    var n = items.length, avail = Math.max(480, host.clientWidth || 900);
+    var right = 24, top = 54, plotH = 300, fs = n > 150 ? 8 : 10;
+
+    var vals = items.map(function (it) { return it.v; }), vmin = Math.min.apply(null, vals), vmax = Math.max.apply(null, vals);
+    var ticks, lo, hi, yOf, base;
+    if (log) {
+      lo = Math.pow(10, Math.floor(Math.log10(vmin))); hi = Math.pow(10, Math.ceil(Math.log10(vmax)));
+      if (hi <= lo) hi = lo * 10;
+      ticks = logTicks(lo, hi);
+      yOf = function (v) { return top + plotH * (1 - (Math.log10(v) - Math.log10(lo)) / (Math.log10(hi) - Math.log10(lo))); };
+      base = top + plotH;
+    } else {
+      var a = Math.min(0, vmin), b = Math.max(0, vmax);
+      if (b === a) b = a + 1;
+      var lt = linTicks(a, b);
+      lo = lt.lo; hi = lt.hi; ticks = lt.ticks;
+      yOf = function (v) { return top + plotH * (1 - (v - lo) / (hi - lo)); };
+      base = yOf(0);
+    }
+
+    var tickW = Math.max.apply(null, ticks.map(function (t) { return fmtTick(t).length; })) * 6.3;
+    var left = Math.round(Math.max(84, 52 + tickW));
+    var step = Math.max(12, Math.min(40, Math.floor((avail - left - right) / n)));
+    var labels = items.map(function (it) { return trunc(it.name, 22); });
+    var maxLen = Math.max.apply(null, labels.map(function (l) { return l.length; }));
+    var labH = Math.max(36, Math.min(130, Math.round(maxLen * fs * 0.6) + 12));
+    var plotW = n * step, W = left + plotW + right, H = top + plotH + labH + 46;
+
+    var varName = S.cols[col()] || 'Value';
+    var yLine2 = (NORM.ok ? NORM_NAMES[NORM.mode] : '') + (log ? (NORM.ok ? ', ' : '') + 'log scale' : '');
+    var yLine1 = trunc(varName, Math.floor(plotH / 6.4));
+    var yTitle = yLine1 + (yLine2 ? ' (' + yLine2 + ')' : '');
+    var sub = S.plate + '-well plate, ranked highest to lowest' + (NORM.ok ? ', ' + NORM_NAMES[NORM.mode].toLowerCase() : '');
+
+    var o = [];
+    o.push('<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" font-family="Segoe UI, system-ui, -apple-system, sans-serif">');
+    o.push('<rect width="' + W + '" height="' + H + '" fill="#ffffff"/>');
+    o.push('<text x="' + left + '" y="24" font-size="14" font-weight="700" fill="#18242f">' + esc(trunc(varName, Math.max(20, Math.floor((W - left - right) / 7.5)))) + '</text>');
+    o.push('<text x="' + left + '" y="42" font-size="11" fill="#55646f">' + esc(sub) + '</text>');
+    ticks.forEach(function (t) {
+      var y = yOf(t);
+      o.push('<line x1="' + left + '" x2="' + (left + plotW) + '" y1="' + y.toFixed(1) + '" y2="' + y.toFixed(1) + '" stroke="#e1e7ec"/>');
+      o.push('<line x1="' + (left - 4) + '" x2="' + left + '" y1="' + y.toFixed(1) + '" y2="' + y.toFixed(1) + '" stroke="#33414d"/>');
+      o.push('<text x="' + (left - 8) + '" y="' + y.toFixed(1) + '" dy="0.35em" text-anchor="end" font-size="11" fill="#33414d">' + esc(fmtTick(t)) + '</text>');
+    });
+    var bw = Math.max(6, step * 0.78);
+    items.forEach(function (it, k) {
+      var cx = left + k * step + step / 2, y = yOf(it.v), yt = Math.min(y, base), h = Math.max(1, Math.abs(y - base));
+      var fill = sc ? rgb(colorAt(tOf(it.v, sc))) : '#8fa3b3', ref = isRef(it.idx);
+      o.push('<g><title>' + esc(it.name + ' (' + it.well + '): ' + fmt(it.v)) + '</title><rect x="' + (cx - bw / 2).toFixed(1) + '" y="' + yt.toFixed(1) +
+        '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" fill="' + fill + '" stroke="' + (ref ? '#14202a' : 'rgba(0,0,0,0.35)') +
+        '" stroke-width="' + (ref ? 2 : 0.6) + '"/></g>');
+      if (n <= 30) {
+        o.push('<text x="' + cx.toFixed(1) + '" y="' + (it.v >= 0 ? yt - 4 : yt + h + 12).toFixed(1) + '" text-anchor="middle" font-size="10" fill="#18242f">' + esc(fmt(it.v)) + '</text>');
+      }
+      o.push('<text transform="translate(' + cx.toFixed(1) + ',' + (top + plotH + 8) + ') rotate(-90)" text-anchor="end" dy="0.35em" font-size="' + fs + '" fill="#33414d">' + esc(labels[k]) + '</text>');
+    });
+    o.push('<line x1="' + left + '" x2="' + left + '" y1="' + top + '" y2="' + (top + plotH) + '" stroke="#33414d"/>');
+    o.push('<line x1="' + left + '" x2="' + (left + plotW) + '" y1="' + base.toFixed(1) + '" y2="' + base.toFixed(1) + '" stroke="#33414d"/>');
+    if (yLine2) {
+      o.push('<text transform="translate(14,' + (top + plotH / 2) + ') rotate(-90)" text-anchor="middle" font-size="12" font-weight="600" fill="#18242f">' + esc(yLine1) + '</text>');
+      o.push('<text transform="translate(29,' + (top + plotH / 2) + ') rotate(-90)" text-anchor="middle" font-size="11" fill="#55646f">' + esc(yLine2) + '</text>');
+    } else {
+      o.push('<text transform="translate(18,' + (top + plotH / 2) + ') rotate(-90)" text-anchor="middle" font-size="12" font-weight="600" fill="#18242f">' + esc(yLine1) + '</text>');
+    }
+    o.push('<text x="' + left + '" y="' + (H - 14) + '" font-size="12" font-weight="600" fill="#18242f">Samples, ranked from highest to lowest (n = ' + n + ')</text>');
+    o.push('</svg>');
+
+    chartState = { svg: o.join(''), w: W, h: H };
+    host.innerHTML = chartState.svg;
+    host.setAttribute('aria-label', 'Bar chart of ' + n + ' samples ranked from highest, ' + items[0].name + ' at ' + fmt(items[0].v) +
+      ', to lowest, ' + items[n - 1].name + ' at ' + fmt(items[n - 1].v) + '. Vertical axis: ' + yTitle + '.');
+    note.textContent = n + (n === 1 ? ' sample' : ' samples') + ' ranked from highest to lowest' +
+      (skipped ? ' (' + skipped + ' without a plottable value left out)' : '') +
+      '. Bars use the heatmap colors' + (anyRef ? ', and a dark outline marks reference wells' : '') + '. Hover a bar for its sample, well and value.';
+  }
+
+  function exportChartSVG() {
+    if (!chartState.svg) return;
+    download(new Blob(['<?xml version="1.0" encoding="UTF-8"?>\n' + chartState.svg], { type: 'image/svg+xml' }), baseName() + '_ranked.svg');
+  }
+  function exportChartPNG() {
+    if (!chartState.svg) return;
+    var k = Math.min(2, 16000 / chartState.w), img = new Image();
+    var url = URL.createObjectURL(new Blob([chartState.svg], { type: 'image/svg+xml;charset=utf-8' }));
+    img.onload = function () {
+      var cv = document.createElement('canvas');
+      cv.width = Math.round(chartState.w * k); cv.height = Math.round(chartState.h * k);
+      var g = cv.getContext('2d');
+      g.fillStyle = '#fff'; g.fillRect(0, 0, cv.width, cv.height);
+      g.drawImage(img, 0, 0, cv.width, cv.height);
+      URL.revokeObjectURL(url);
+      cv.toBlob(function (b) { if (b) download(b, baseName() + '_ranked.png'); }, 'image/png');
+    };
+    img.onerror = function () {
+      URL.revokeObjectURL(url);
+      $('chartNote').textContent = 'This browser could not make the PNG. Use Download chart SVG instead.';
+    };
+    img.src = url;
   }
 
   /* ---------- Exports ---------- */
@@ -1317,7 +1605,12 @@
     var plate = $('plate');
     plate.addEventListener('click', function (e) {
       var ax = e.target.closest('.axis[data-axis]');
-      if (ax) { if (S.pick) toggleLine(ax.dataset.axis, parseInt(ax.dataset.i, 10)); return; }
+      if (ax) {
+        var ai = parseInt(ax.dataset.i, 10);
+        if (S.pick) toggleLine(ax.dataset.axis, ai);
+        else selectLine(ax.dataset.axis, ai, e.ctrlKey || e.metaKey);
+        return;
+      }
       var b = e.target.closest('.well'); if (!b) return;
       if (S.pick) {
         var idx = S.layout.get(b.dataset.well);
@@ -1325,17 +1618,36 @@
         if (idx !== undefined) toggleRef([idx]);
         return;
       }
-      selectWell(b.dataset.well, true);
+      selectFromClick(b.dataset.well, e);
+    });
+    plate.addEventListener('keyup', function (e) {
+      if (e.key === ' ' && !S.pick && e.target.closest('.well')) e.preventDefault();
     });
     plate.addEventListener('keydown', function (e) {
       var b = e.target.closest('.well'); if (!b) return;
       var r = +b.dataset.r, c = +b.dataset.c, d = dims();
+      if (!S.pick) {
+        if ((e.ctrlKey || e.metaKey) && (e.key === 'a' || e.key === 'A')) {
+          e.preventDefault();
+          var all = new Set(); S.layout.forEach(function (i, w) { all.add(w); });
+          applySelection(all, b.dataset.well, b.dataset.well); return;
+        }
+        if (e.key === ' ') { e.preventDefault(); selectFromClick(b.dataset.well, { ctrlKey: true }); return; }
+        if ((e.key === 'Delete' || e.key === 'Backspace') && S.multi.size) { e.preventDefault(); moveOff(); return; }
+        if (e.key === 'Escape' && S.multi.size) { e.preventDefault(); applySelection(new Set(), null, b.dataset.well); return; }
+      }
       if (e.key === 'ArrowRight') c++; else if (e.key === 'ArrowLeft') c--;
       else if (e.key === 'ArrowDown') r++; else if (e.key === 'ArrowUp') r--;
       else return;
       e.preventDefault();
       r = Math.max(0, Math.min(d.r - 1, r)); c = Math.max(0, Math.min(d.c - 1, c));
-      var n = plate.querySelector('[data-well="' + wellId(r, c) + '"]');
+      var nid = wellId(r, c);
+      if (e.shiftKey && !S.pick) {
+        if (!S.anchor) S.anchor = b.dataset.well;
+        applySelection(selectRect(S.anchor, nid), nid, nid);
+        return;
+      }
+      var n = plate.querySelector('[data-well="' + nid + '"]');
       if (n) { b.tabIndex = -1; n.tabIndex = 0; n.focus(); }
     });
     $('edSample').addEventListener('change', function () {
@@ -1351,6 +1663,15 @@
       if (!b || b.draggable !== true) return;
       var idx = S.layout.get(b.dataset.well);
       if (idx === undefined) return;
+      if (S.multi.size > 1 && S.multi.has(b.dataset.well)) {
+        var ws = [];
+        S.multi.forEach(function (w) { if (S.layout.has(w)) ws.push(w); });
+        S.drag = { kind: 'group', wells: ws };
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', ws.length + ' samples');
+        Array.prototype.forEach.call(plate.querySelectorAll('.well.sel'), function (el) { el.classList.add('dragging'); });
+        return;
+      }
       S.drag = { kind: 'well', well: b.dataset.well, idx: idx };
       e.dataTransfer.effectAllowed = 'move';
       e.dataTransfer.setData('text/plain', S.samples[idx].name);
@@ -1358,7 +1679,7 @@
     });
     plate.addEventListener('dragover', function (e) {
       var b = e.target.closest ? e.target.closest('.well') : null;
-      if (!S.drag || !b) return;
+      if (!S.drag || !b || S.drag.kind === 'group') return;
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
       Array.prototype.forEach.call(plate.querySelectorAll('.dragover'), function (el) { if (el !== b) el.classList.remove('dragover'); });
@@ -1389,7 +1710,7 @@
       b.classList.add('dragging');
     });
     chips.addEventListener('dragover', function (e) {
-      if (!S.drag || S.drag.kind !== 'well') return;
+      if (!S.drag || (S.drag.kind !== 'well' && S.drag.kind !== 'group')) return;
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
       chips.classList.add('dragover');
@@ -1398,22 +1719,25 @@
       if (!chips.contains(e.relatedTarget)) chips.classList.remove('dragover');
     });
     chips.addEventListener('drop', function (e) {
-      if (!S.drag || S.drag.kind !== 'well') return;
+      if (!S.drag || (S.drag.kind !== 'well' && S.drag.kind !== 'group')) return;
       e.preventDefault();
-      var from = S.drag.well;
+      var dr = S.drag;
       S.drag = null;
-      S.layout.delete(from);
-      if (S.sel === from) S.sel = null;
-      render();
+      moveOff(dr.kind === 'group' ? dr.wells : [dr.well]);
     });
     chips.addEventListener('click', function (e) {
       var b = e.target.closest ? e.target.closest('.chip') : null;
-      if (!b || !S.sel) return;
+      if (!b || !S.sel || S.multi.size !== 1) return;
       assign(S.sel, parseInt(b.dataset.sample, 10));
       selectWell(S.sel, true);
     });
     document.addEventListener('dragend', clearDrag);
 
+    $('moveOff').addEventListener('click', function () { moveOff(); });
+    $('clearSel').addEventListener('click', function () { applySelection(new Set(), null, null); });
+    $('undoMove').addEventListener('click', undoMove);
+    $('dlChartPng').addEventListener('click', exportChartPNG);
+    $('dlChartSvg').addEventListener('click', exportChartSVG);
     $('dlPng').addEventListener('click', exportPNG);
     $('dlCsv').addEventListener('click', exportCSV);
 
