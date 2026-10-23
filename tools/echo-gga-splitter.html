@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Split an Echo GGA CSV into one unquoted CSV download for each destination plate."
+    />
+    <title>Echo GGA CSV Splitter | MTech</title>
+    <style>
+      :root {
+        --ink: #141615;
+        --muted: #626763;
+        --paper: #f5f5f1;
+        --surface: #ffffff;
+        --line: #dadcd7;
+        --blue: #315cf5;
+        --error: #a32929;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      }
+
+      /* MTECH TOP BAR STYLES START: copy this block unchanged into every tool */
+      .site-header {
+        width: 100%;
+        border-bottom: 1px solid #dadcd7;
+        background: rgba(245, 245, 241, 0.94);
+      }
+
+      .header-inner {
+        display: flex;
+        width: min(1120px, calc(100% - 48px));
+        min-height: 76px;
+        margin-inline: auto;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        color: #141615;
+        font-size: 1.02rem;
+        font-weight: 760;
+        letter-spacing: -0.02em;
+        text-decoration: none;
+      }
+
+      .brand-mark {
+        display: grid;
+        width: 30px;
+        height: 30px;
+        place-items: center;
+        border-radius: 7px;
+        background: #141615;
+        color: white;
+        font-size: 0.82rem;
+        font-weight: 800;
+      }
+
+      .site-nav {
+        display: flex;
+        align-items: center;
+        gap: 30px;
+        color: #626763;
+        font-size: 0.9rem;
+        font-weight: 600;
+      }
+
+      .site-nav a {
+        color: inherit;
+        font-weight: inherit;
+        text-decoration: none;
+        transition: color 150ms ease;
+      }
+
+      .site-nav a:hover,
+      .site-nav a:focus-visible { color: #315cf5; }
+
+      @media (max-width: 560px) {
+        .header-inner { width: min(100% - 28px, 1120px); min-height: 68px; }
+        .site-nav { gap: 16px; }
+        .site-nav a:nth-child(2) { display: none; }
+      }
+      /* MTECH TOP BAR STYLES END */
+
+      main {
+        width: min(760px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 42px 0 80px;
+      }
+
+      a {
+        color: var(--blue);
+        font-weight: 700;
+        text-underline-offset: 4px;
+      }
+
+      h1 {
+        margin: 58px 0 12px;
+        font-size: clamp(2.7rem, 9vw, 5rem);
+        line-height: 0.98;
+        letter-spacing: -0.06em;
+      }
+
+      .intro {
+        max-width: 600px;
+        margin: 0 0 30px;
+        color: var(--muted);
+      }
+
+      .tool-panel {
+        padding: clamp(20px, 5vw, 36px);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        background: var(--surface);
+      }
+
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+      }
+
+      button:focus-visible,
+      input:focus-visible,
+      select:focus-visible,
+      textarea:focus-visible,
+      a:focus-visible {
+        outline: 3px solid #aebdff;
+        outline-offset: 3px;
+      }
+
+      input[type="file"] {
+        display: block;
+        width: 100%;
+        padding: 10px;
+        border: 1px dashed var(--line);
+        border-radius: 8px;
+        background: var(--paper);
+      }
+
+      .actions {
+        margin-top: 16px;
+      }
+
+      button {
+        padding: 10px 16px;
+        border: 0;
+        border-radius: 8px;
+        background: var(--blue);
+        color: white;
+        cursor: pointer;
+        font-weight: 700;
+      }
+
+      button:disabled {
+        background: var(--line);
+        color: var(--muted);
+        cursor: not-allowed;
+      }
+
+      .hint,
+      #status {
+        color: var(--muted);
+        font-size: 0.92rem;
+      }
+
+      #status { margin: 24px 0 0; }
+      #status.error { color: var(--error); }
+
+      .downloads {
+        display: grid;
+        gap: 12px;
+        margin-top: 20px;
+      }
+
+      .download {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 16px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--paper);
+      }
+
+      .download span { color: var(--muted); }
+      .download a { white-space: nowrap; }
+
+      @media (max-width: 520px) {
+        .download { align-items: flex-start; flex-direction: column; gap: 4px; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { transition-duration: 0.01ms !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- MTECH TOP BAR START: copy this block unchanged into every tool -->
+    <header class="site-header" data-mtech-nav="v1">
+      <div class="header-inner">
+        <a class="brand" href="../index.html" aria-label="MTech home">
+          <span class="brand-mark" aria-hidden="true">M</span>
+          <span>MTech</span>
+        </a>
+        <nav class="site-nav" aria-label="Main navigation">
+          <a href="../index.html#tools">Tools</a>
+          <a href="../index.html#contribute">Contribute</a>
+          <a href="https://github.com/alexon-bench/group-site" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+        </nav>
+      </div>
+    </header>
+    <!-- MTECH TOP BAR END -->
+
+    <main>
+      <h1>Echo GGA CSV splitter</h1>
+      <p class="intro">
+        Process an Echo csv file to create one downloadable CSV for every unique
+        Destination Plate.
+      </p>
+
+      <section class="tool-panel" aria-labelledby="tool-title">
+        <h2 id="tool-title">Split by destination plate</h2>
+        <label for="csv-file">Echo GGA CSV file</label>
+        <input id="csv-file" type="file" accept=".csv,text/csv" />
+        <div class="actions">
+          <button id="process-button" type="button" disabled>Process CSV</button>
+        </div>
+        <p id="status" role="status">No file selected.</p>
+        <div id="downloads" class="downloads" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <script>
+      const fileInput = document.getElementById("csv-file");
+      const processButton = document.getElementById("process-button");
+      const status = document.getElementById("status");
+      const downloads = document.getElementById("downloads");
+      let selectedFile = null;
+
+      function parseCsv(text) {
+        const rows = [];
+        let row = [];
+        let value = "";
+        let quoted = false;
+
+        for (let index = 0; index < text.length; index += 1) {
+          const character = text[index];
+          const next = text[index + 1];
+
+          if (character === '"') {
+            if (quoted && next === '"') {
+              value += '"';
+              index += 1;
+            } else {
+              quoted = !quoted;
+            }
+          } else if (character === "," && !quoted) {
+            row.push(value);
+            value = "";
+          } else if ((character === "\n" || character === "\r") && !quoted) {
+            if (character === "\r" && next === "\n") index += 1;
+            row.push(value);
+            if (row.some((cell) => cell !== "")) rows.push(row);
+            row = [];
+            value = "";
+          } else {
+            value += character;
+          }
+        }
+
+        if (value !== "" || row.length > 0) {
+          row.push(value);
+          if (row.some((cell) => cell !== "")) rows.push(row);
+        }
+        return rows;
+      }
+
+      function safeFilename(value) {
+        const name = value.replace(/[^\w.-]+/g, "_").replace(/^[_\s]+|[_\s]+$/g, "");
+        return name || "unnamed_plate";
+      }
+
+      function showError(message) {
+        status.textContent = message;
+        status.className = "error";
+        downloads.replaceChildren();
+      }
+
+      function splitCsv(text, originalName) {
+        const rows = parseCsv(text.replace(/^\uFEFF/, ""));
+        if (rows.length < 2) throw new Error("The file must include a header and at least one data row.");
+
+        const headers = rows[0];
+        const plateColumn = headers.indexOf("Destination Plate Name");
+        if (plateColumn === -1) {
+          throw new Error('The file must contain a "Destination Plate Name" column.');
+        }
+        const sourceColumn = headers.indexOf("Source Plate Name");
+        if (sourceColumn === -1) {
+          throw new Error('The file must contain a "Source Plate Name" column.');
+        }
+
+        const groups = new Map();
+        for (const row of rows.slice(1)) {
+          if (row.length !== headers.length) {
+            throw new Error("A data row has a different number of columns than the header.");
+          }
+          const plate = row[plateColumn];
+          if (!groups.has(plate)) groups.set(plate, []);
+          groups.get(plate).push(row);
+        }
+
+        const stem = originalName.replace(/\.[^.]+$/, "") || "echo_gga";
+        downloads.replaceChildren();
+        const sourcePlateNumbers = (name) =>
+          (name.match(/\d+/g) || []).map((part) => Number(part));
+        const compareSourcePlates = (rowA, rowB) => {
+          const numbersA = sourcePlateNumbers(rowA[sourceColumn]);
+          const numbersB = sourcePlateNumbers(rowB[sourceColumn]);
+          const count = Math.max(numbersA.length, numbersB.length);
+          for (let index = 0; index < count; index += 1) {
+            const numberA = numbersA[index];
+            const numberB = numbersB[index];
+            if (numberA === undefined) return -1;
+            if (numberB === undefined) return 1;
+            if (numberA !== numberB) return numberA - numberB;
+          }
+          return 0;
+        };
+        const sortedGroups = [...groups.entries()].sort(([plateA], [plateB]) => {
+          const numericPlate = (plate) => /^\s*[+-]?(?:\d+\.?\d*|\.\d+)\s*$/.test(plate);
+          const numberA = Number(plateA);
+          const numberB = Number(plateB);
+          const numericA = numericPlate(plateA);
+          const numericB = numericPlate(plateB);
+          const bothNumeric = numericA && numericB;
+          if (bothNumeric && numberA !== numberB) return numberA - numberB;
+          if (numericA !== numericB) {
+            return numericA ? -1 : 1;
+          }
+          return 0;
+        });
+
+        for (const [plate, group] of sortedGroups) {
+          const sortedRows = group
+            .map((row, index) => ({ row, index }))
+            .sort((a, b) => compareSourcePlates(a.row, b.row) || a.index - b.index)
+            .map(({ row }) => row);
+          const output = [headers, ...sortedRows]
+            .map((row) => row.map((cell) => cell.replaceAll('"', "")).join(","))
+            .join("\n") + "\n";
+          const link = document.createElement("a");
+          link.href = URL.createObjectURL(new Blob([output], { type: "text/csv;charset=utf-8" }));
+          link.download = `${stem}_${safeFilename(plate)}.csv`;
+          link.textContent = `Download ${link.download}`;
+
+          const item = document.createElement("div");
+          item.className = "download";
+          const description = document.createElement("span");
+          description.textContent = `${plate || "(blank destination)"} — ${group.length} row${group.length === 1 ? "" : "s"}`;
+          item.append(description, link);
+          downloads.append(item);
+        }
+        status.className = "";
+        status.textContent = `${groups.size} file${groups.size === 1 ? "" : "s"} ready from ${rows.length - 1} data rows.`;
+      }
+
+      fileInput.addEventListener("change", () => {
+        [selectedFile] = fileInput.files;
+        processButton.disabled = !selectedFile;
+        downloads.replaceChildren();
+        status.className = "";
+        status.textContent = selectedFile
+          ? `${selectedFile.name} selected. Click Process CSV to continue.`
+          : "No file selected.";
+      });
+
+      processButton.addEventListener("click", async () => {
+        if (!selectedFile) return;
+        processButton.disabled = true;
+        status.className = "";
+        status.textContent = "Processing CSV…";
+        try {
+          splitCsv(await selectedFile.text(), selectedFile.name);
+        } catch (error) {
+          showError(error instanceof Error ? error.message : "Could not read this CSV file.");
+        } finally {
+          processButton.disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
